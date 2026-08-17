@@ -1,3 +1,5 @@
+using System.Security.AccessControl;
+using System.Security.Principal;
 using System.Text.Json;
 using AegisMouse.Core;
 using Dapper;
@@ -101,5 +103,45 @@ public static class AppPaths
     {
         Directory.CreateDirectory(LogDirectory);
         Directory.CreateDirectory(Path.GetDirectoryName(DatabasePath)!);
+    }
+
+    public static void HardenStorage()
+    {
+        try
+        {
+            ApplyAcl(Root);
+            ApplyAcl(LogDirectory);
+            ApplyAcl(Path.GetDirectoryName(DatabasePath)!);
+            foreach (var f in Directory.EnumerateFiles(Root)) ApplyAcl(f);
+            foreach (var f in Directory.EnumerateFiles(LogDirectory)) ApplyAcl(f);
+            foreach (var f in Directory.EnumerateFiles(Path.GetDirectoryName(DatabasePath)!)) ApplyAcl(f);
+            Log.Information("AegisMouse storage ACLs hardened");
+        }
+        catch (Exception ex) { Log.Warning(ex, "Storage hardening failed"); }
+    }
+
+    static void ApplyAcl(string path)
+    {
+        bool isDir = Directory.Exists(path);
+        FileSystemSecurity sec = isDir
+            ? new DirectoryInfo(path).GetAccessControl()
+            : new FileInfo(path).GetAccessControl();
+        var inher = isDir
+            ? InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit
+            : InheritanceFlags.None;
+        sec.SetAccessRuleProtection(true, false);
+        sec.AddAccessRule(new FileSystemAccessRule(
+            new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null),
+            FileSystemRights.FullControl, inher, PropagationFlags.None, AccessControlType.Allow));
+        sec.AddAccessRule(new FileSystemAccessRule(
+            new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null),
+            FileSystemRights.FullControl, inher, PropagationFlags.None, AccessControlType.Allow));
+        if (WindowsIdentity.GetCurrent().User is { } self)
+            sec.AddAccessRule(new FileSystemAccessRule(self, FileSystemRights.FullControl, inher, PropagationFlags.None, AccessControlType.Allow));
+        sec.AddAccessRule(new FileSystemAccessRule(
+            new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null),
+            FileSystemRights.ReadAndExecute | FileSystemRights.ListDirectory, inher, PropagationFlags.None, AccessControlType.Allow));
+        if (isDir) new DirectoryInfo(path).SetAccessControl((DirectorySecurity)sec);
+        else new FileInfo(path).SetAccessControl((FileSecurity)sec);
     }
 }

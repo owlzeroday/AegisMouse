@@ -41,10 +41,10 @@ public sealed partial class BindingItem : ObservableObject
     {
         Trigger = Trigger,
         Mode = Mode,
-        FireRateRpm = FireRateRpm,
-        BurstCount = BurstCount,
+        FireRateRpm = Math.Clamp(FireRateRpm, 60, 60000),
+        BurstCount = Math.Clamp(BurstCount, 1, 100),
         ArmButton = ArmButton,
-        RemapVk = RemapVk,
+        RemapVk = RemapVk is > 0 and <= 255 ? RemapVk : 0,
         Actions = Actions.Select(a => a.Build()).ToList()
     };
 
@@ -67,8 +67,10 @@ public sealed partial class MacroActionItem : ObservableObject
 
     public MacroAction Build() => new()
     {
-        Kind = Kind, Button = Button, Vk = Vk, Dx = Dx, Dy = Dy,
-        DelayMs = DelayMs, HoldMs = HoldMs, Repeat = Repeat, RepeatIntervalMs = RepeatIntervalMs
+        Kind = Kind, Button = Button, Vk = Vk,
+        Dx = Math.Clamp(Dx, -2000, 2000), Dy = Math.Clamp(Dy, -2000, 2000),
+        DelayMs = Math.Clamp(DelayMs, 0, 60000), HoldMs = Math.Clamp(HoldMs, 0, 60000),
+        Repeat = Math.Clamp(Repeat, 1, 1000), RepeatIntervalMs = Math.Clamp(RepeatIntervalMs, 0, 60000)
     };
 
     [ObservableProperty] ActionKind kind = ActionKind.Click;
@@ -89,7 +91,13 @@ public sealed partial class RecoilRow : ObservableObject
     public RecoilRow() { }
     public RecoilRow(RecoilStep s) { Shot = s.Shot; Dx = s.Dx; Dy = s.Dy; DelayMs = s.DelayMs; }
 
-    public RecoilStep Build() => new() { Shot = Shot, Dx = Dx, Dy = Dy, DelayMs = DelayMs };
+    public RecoilStep Build() => new()
+    {
+        Shot = Shot,
+        Dx = Math.Clamp(Dx, -2000, 2000),
+        Dy = Math.Clamp(Dy, -2000, 2000),
+        DelayMs = Math.Clamp(DelayMs, 1, 60000)
+    };
 
     [ObservableProperty] int shot;
     [ObservableProperty] int dx;
@@ -334,21 +342,26 @@ public sealed partial class MainViewModel : ObservableObject
     void SaveNow()
     {
         if (SelectedProfile is null || _suppressSave) return;
+        if (System.Windows.Application.Current?.Dispatcher is { } dispatcher && !dispatcher.CheckAccess())
+        {
+            try { dispatcher.Invoke(SaveNow); } catch (TaskCanceledException) { }
+            return;
+        }
         lock (_saveLock)
         {
             try
             {
                 var m = SelectedProfile.Model;
                 m.Name = SelectedProfile.Name;
-                m.Dpi = (int)Dpi;
-                m.RecoilStrength = RecoilStrength;
+                m.Dpi = (int)Math.Clamp(Dpi, 100, 16000);
+                m.RecoilStrength = Math.Clamp(RecoilStrength, 0.05, 5.0);
                 m.Humanize = new HumanizeSettings
                 {
                     Enabled = HumanizeEnabled,
-                    DelayJitterMs = DelayJitterMs,
-                    HoldJitterMs = HoldJitterMs,
-                    MoveJitterCounts = MoveJitterCounts,
-                    StepSkipPercent = StepSkipPercent
+                    DelayJitterMs = Math.Clamp(DelayJitterMs, 0, 1000),
+                    HoldJitterMs = Math.Clamp(HoldJitterMs, 0, 1000),
+                    MoveJitterCounts = Math.Clamp(MoveJitterCounts, 0, 100),
+                    StepSkipPercent = Math.Clamp(StepSkipPercent, 0, 100)
                 };
                 m.Bindings = Bindings.Select(b => b.Build()).ToList();
                 m.RecoilTable = RecoilRows.Select(r => r.Build()).ToList();

@@ -199,7 +199,11 @@ public sealed class MacroEngine : IDisposable
             try { Log.Information("Macro dispatch: {Button} → {Mode}", button, mode); body(); }
             catch (OperationCanceledException) { }
             catch (Exception ex) { Log.Warning(ex, "Macro loop failed for {Button}", button); }
-            finally { _active.TryRemove(button, out _); }
+            finally
+            {
+                if (_active.TryGetValue(button, out var current) && ReferenceEquals(current, cts))
+                    _active.TryRemove(button, out _);
+            }
         }) { IsBackground = true, Priority = ThreadPriority.AboveNormal, Name = $"Macro-{button}" };
         t.Start();
     }

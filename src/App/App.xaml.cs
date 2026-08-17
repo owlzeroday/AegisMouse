@@ -27,6 +27,7 @@ public partial class App : WpfApplication
         }
 
         AppPaths.EnsureDirectories();
+        AppPaths.HardenStorage();
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Information()
             .WriteTo.File(

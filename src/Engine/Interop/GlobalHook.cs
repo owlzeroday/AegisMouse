@@ -13,6 +13,7 @@ public sealed class GlobalHook : IDisposable
         WM_XBUTTONDOWN = 0x020B, WM_XBUTTONUP = 0x020C, WM_MOUSEWHEEL = 0x020A;
     const int WM_KEYDOWN = 0x0100, WM_KEYUP = 0x0101, WM_SYSKEYDOWN = 0x0104, WM_SYSKEYUP = 0x0105;
     const uint LLMHF_INJECTED = 0x00000001;
+    const uint LLKHF_INJECTED = 0x00000010;
 
     public delegate void MouseButtonHandler(MouseButton button, bool down);
     public delegate void KeyHandler(int vk, bool down);
@@ -113,32 +114,36 @@ public sealed class GlobalHook : IDisposable
     IntPtr MouseProc(int nCode, IntPtr wParam, IntPtr lParam)
     {
         bool blocked = false;
-        if (nCode >= 0)
+        try
         {
-            var data = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
-            switch ((int)wParam)
+            if (nCode >= 0)
             {
-                case WM_LBUTTONDOWN: blocked = Raise(MouseButton.Left, true, data); break;
-                case WM_LBUTTONUP: blocked = Raise(MouseButton.Left, false, data); break;
-                case WM_RBUTTONDOWN: blocked = Raise(MouseButton.Right, true, data); break;
-                case WM_RBUTTONUP: blocked = Raise(MouseButton.Right, false, data); break;
-                case WM_MBUTTONDOWN: blocked = Raise(MouseButton.Middle, true, data); break;
-                case WM_MBUTTONUP: blocked = Raise(MouseButton.Middle, false, data); break;
-                case WM_XBUTTONDOWN:
-                case WM_XBUTTONUP:
-                    var which = ((uint)data.mouseData >> 16) & 0xFFFF;
-                    var btn = which == 1 ? MouseButton.Side1 : MouseButton.Side2;
-                    blocked = Raise(btn, (int)wParam == WM_XBUTTONDOWN, data);
-                    break;
-                case WM_MOUSEWHEEL:
-                    if ((data.flags & LLMHF_INJECTED) == 0)
-                    {
-                        int ticks = (short)((uint)data.mouseData >> 16) / 120;
-                        if (ticks != 0) Wheel?.Invoke(ticks < 0, Math.Abs(ticks));
-                    }
-                    break;
+                var data = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
+                switch ((int)wParam)
+                {
+                    case WM_LBUTTONDOWN: blocked = Raise(MouseButton.Left, true, data); break;
+                    case WM_LBUTTONUP: blocked = Raise(MouseButton.Left, false, data); break;
+                    case WM_RBUTTONDOWN: blocked = Raise(MouseButton.Right, true, data); break;
+                    case WM_RBUTTONUP: blocked = Raise(MouseButton.Right, false, data); break;
+                    case WM_MBUTTONDOWN: blocked = Raise(MouseButton.Middle, true, data); break;
+                    case WM_MBUTTONUP: blocked = Raise(MouseButton.Middle, false, data); break;
+                    case WM_XBUTTONDOWN:
+                    case WM_XBUTTONUP:
+                        var which = ((uint)data.mouseData >> 16) & 0xFFFF;
+                        var btn = which == 1 ? MouseButton.Side1 : MouseButton.Side2;
+                        blocked = Raise(btn, (int)wParam == WM_XBUTTONDOWN, data);
+                        break;
+                    case WM_MOUSEWHEEL:
+                        if ((data.flags & LLMHF_INJECTED) == 0)
+                        {
+                            int ticks = (short)((uint)data.mouseData >> 16) / 120;
+                            if (ticks != 0) Wheel?.Invoke(ticks < 0, Math.Abs(ticks));
+                        }
+                        break;
+                }
             }
         }
+        catch (Exception ex) { Log.Warning(ex, "Mouse hook callback failed"); }
         // Returning 1 swallows the event so no other app sees it (KeyRemap).
         return blocked ? new IntPtr(1) : CallNextHookEx(_mouseHook, nCode, wParam, lParam);
     }
@@ -155,12 +160,16 @@ public sealed class GlobalHook : IDisposable
 
     IntPtr KeyProc(int nCode, IntPtr wParam, IntPtr lParam)
     {
-        if (nCode >= 0)
+        try
         {
-            var data = Marshal.PtrToStructure<KBDLLHOOKSTRUCT>(lParam);
-            if ((data.flags & LLMHF_INJECTED) == 0)
-                Key?.Invoke((int)data.vkCode, (int)wParam is WM_KEYDOWN or WM_SYSKEYDOWN);
+            if (nCode >= 0)
+            {
+                var data = Marshal.PtrToStructure<KBDLLHOOKSTRUCT>(lParam);
+                if ((data.flags & LLKHF_INJECTED) == 0)
+                    Key?.Invoke((int)data.vkCode, (int)wParam is WM_KEYDOWN or WM_SYSKEYDOWN);
+            }
         }
+        catch (Exception ex) { Log.Warning(ex, "Keyboard hook callback failed"); }
         return CallNextHookEx(_keyHook, nCode, wParam, lParam);
     }
 
