@@ -334,7 +334,7 @@ public sealed partial class MainViewModel : ObservableObject
     void UpdateSummary(ProfileItem item)
     {
         int assigned = Bindings.Count(b => b.Mode != BindingMode.Default);
-        item.BindingSummary = $"{assigned} assigned Â· {RecoilRows.Count} recoil steps";
+        item.BindingSummary = $"{assigned} assigned · {RecoilRows.Count} recoil steps";
     }
 
     void ScheduleSave() { _saveTimer.Stop(); _saveTimer.Start(); }

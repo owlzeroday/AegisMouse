@@ -7,39 +7,47 @@
         mc:Ignorable="d"
         Title="AegisMouse" Height="740" Width="1120" MinHeight="640" MinWidth="960"
         WindowStartupLocation="CenterScreen">
-    <Grid Margin="16">
+    <Grid Margin="18">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <Grid Grid.Row="0" Margin="0,0,0,12">
+        <!-- ═══════════════════════════════════════════════════════════
+             HEADER — FIXED: logo + title now in one StackPanel (no overlap)
+             ═══════════════════════════════════════════════════════════ -->
+        <Grid Grid.Row="0" Margin="0,0,0,14">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <Border Width="34" Height="34" CornerRadius="8" Margin="0,0,10,0">
-                <Border.Background>
-                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                        <GradientStop Color="{StaticResource AccentColor}" Offset="0" />
-                        <GradientStop Color="{StaticResource AccentPressedColor}" Offset="1" />
-                    </LinearGradientBrush>
-                </Border.Background>
-                <TextBlock Text="AM" Foreground="#FF0B0E13" FontWeight="Bold" FontSize="15"
-                           HorizontalAlignment="Center" VerticalAlignment="Center" />
-            </Border>
+
+            <!-- Logo + title grouped together -->
             <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                <Border Width="36" Height="36" CornerRadius="9" Margin="0,0,12,0">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                            <GradientStop Color="{StaticResource AccentColor}" Offset="0" />
+                            <GradientStop Color="{StaticResource AccentPressedColor}" Offset="1" />
+                        </LinearGradientBrush>
+                    </Border.Background>
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="10" ShadowDepth="0" Opacity="0.35" Color="{StaticResource AccentColor}" />
+                    </Border.Effect>
+                    <TextBlock Text="AM" Foreground="#FF0B0E13" FontWeight="Bold" FontSize="15"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
                 <TextBlock Text="AegisMouse" FontSize="18" FontWeight="Bold" VerticalAlignment="Center" />
                 <TextBlock Text="  universal mouse macros — any brand" Foreground="{StaticResource Muted}"
                            FontSize="12" VerticalAlignment="Center" Margin="8,2,0,0" />
             </StackPanel>
-            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+
+            <!-- Right side: macros toggle -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                 <TextBlock Text="MACROS" Foreground="{StaticResource Muted}" FontSize="11" FontWeight="SemiBold"
                            VerticalAlignment="Center" Margin="0,0,10,0" />
-                <Border CornerRadius="4" Background="{StaticResource Surface2}" Padding="10,5">
+                <Border CornerRadius="6" Background="{StaticResource Surface2}" BorderBrush="{StaticResource Border}" BorderThickness="1" Padding="12,6">
                     <StackPanel Orientation="Horizontal">
                         <Ellipse Width="8" Height="8" Margin="0,0,6,0" VerticalAlignment="Center">
                             <Ellipse.Style>
@@ -60,15 +68,17 @@
             </StackPanel>
         </Grid>
 
-        <!-- Body -->
+        <!-- ═══════════════════════════════════════════════════════════
+             BODY
+             ═══════════════════════════════════════════════════════════ -->
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="236" />
+                <ColumnDefinition Width="240" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
             <!-- Sidebar: profiles -->
-            <Border Style="{StaticResource Card}" Grid.Column="0" Margin="0,0,12,0">
+            <Border Style="{StaticResource Card}" Grid.Column="0" Margin="0,0,14,0">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -78,7 +88,7 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <TextBlock Text="PROFILES" Foreground="{StaticResource Muted}" FontSize="11"
-                               FontWeight="SemiBold" Margin="2,0,0,8" />
+                               FontWeight="SemiBold" Margin="2,0,0,10" />
                     <ListBox Grid.Row="1" ItemsSource="{Binding Profiles}"
                              SelectedItem="{Binding SelectedProfile}">
                         <ListBox.ItemTemplate>
@@ -91,7 +101,8 @@
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
-                    <Grid Grid.Row="3" Margin="0,8,0,0">
+                    <TextBlock Grid.Row="2" Text="Rename:" Foreground="{StaticResource Muted}" FontSize="11" Margin="2,14,0,4" />
+                    <Grid Grid.Row="3" Margin="0,4,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="*" />
@@ -99,16 +110,15 @@
                         <Button Grid.Column="0" Content="+ New" Margin="0,0,4,0" Command="{Binding AddProfileCommand}" />
                         <Button Grid.Column="1" Content="Delete" Margin="4,0,0,0" Command="{Binding DeleteProfileCommand}" />
                     </Grid>
-                    <TextBox Grid.Row="4" Margin="0,8,0,0" Text="{Binding SelectedProfile.Name, UpdateSourceTrigger=PropertyChanged}"
+                    <TextBox Grid.Row="4" Margin="0,10,0,0" Text="{Binding SelectedProfile.Name, UpdateSourceTrigger=PropertyChanged}"
                              ToolTip="Rename the selected profile" />
-                    <TextBlock Grid.Row="2" Text="Rename:" Foreground="{StaticResource Muted}" FontSize="11" Margin="2,12,0,4" />
                 </Grid>
             </Border>
 
             <!-- Main tabs -->
             <TabControl Grid.Column="1">
                 <TabItem Header="Assignments">
-                    <Grid Margin="0,10,0,0">
+                    <Grid Margin="0,12,0,0">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="*" />
                             <RowDefinition Height="Auto" />
@@ -167,7 +177,7 @@
                                 </DataGridTemplateColumn>
                             </DataGrid.Columns>
                         </DataGrid>
-                        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,8,0,0">
+                        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,10,0,0">
                             <Button Content="+ Add binding" Command="{Binding AddBindingCommand}" Style="{StaticResource AccentButton}" />
                             <Button Content="Remove" Margin="8,0,0,0"
                                     Command="{Binding RemoveBindingCommand}"
@@ -179,13 +189,13 @@
                 </TabItem>
 
                 <TabItem Header="Macros">
-                    <Grid Margin="0,10,0,0">
+                    <Grid Margin="0,12,0,0">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Style="{StaticResource Hint}" Margin="0,0,0,8"
+                        <TextBlock Grid.Row="0" Style="{StaticResource Hint}" Margin="0,0,0,10"
                                    Text="Sequence played on button-down while the binding function is 'Hold macro'. Delay runs before each action; Hold is the down-time for clicks/taps. Repeat > 1 replays the action with an interval between reps." />
                         <DataGrid x:Name="MacrosGrid" Grid.Row="1" ItemsSource="{Binding MacroActions}" CanUserAddRows="True">
                             <DataGrid.Columns>
@@ -203,7 +213,7 @@
                                             <ComboBox ItemsSource="{x:Static vm:BindingItem.AllButtons}"
                                                       SelectedItem="{Binding Button, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                         </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
+                                    </DataTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
                                 <DataGridTemplateColumn Header="Key" Width="100">
                                     <DataGridTemplateColumn.CellTemplate>
@@ -212,7 +222,7 @@
                                                       SelectedValuePath="Vk" DisplayMemberPath="Name"
                                                       SelectedValue="{Binding Vk, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                         </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
+                                    </DataTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
                                 <DataGridTemplateColumn Header="Dx" Width="60">
                                     <DataGridTemplateColumn.CellTemplate>
@@ -258,7 +268,7 @@
                                 </DataGridTemplateColumn>
                             </DataGrid.Columns>
                         </DataGrid>
-                        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
+                        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,10,0,0">
                             <Button Content="+ Add action" Command="{Binding AddActionCommand}" Style="{StaticResource AccentButton}" />
                             <Button Content="Remove" Margin="8,0,0,0"
                                     Command="{Binding RemoveActionCommand}"
@@ -268,7 +278,7 @@
                 </TabItem>
 
                 <TabItem Header="Recoil">
-                    <Grid Margin="0,10,0,0">
+                    <Grid Margin="0,12,0,0">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
@@ -297,7 +307,7 @@
                                 <DataGridTextColumn Header="Delay ms" Binding="{Binding DelayMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="90" />
                             </DataGrid.Columns>
                         </DataGrid>
-                        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
+                        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,10,0,0">
                             <Button Content="+ Add row" Command="{Binding AddRowCommand}" Style="{StaticResource AccentButton}" />
                             <Button Content="Remove" Margin="8,0,0,0"
                                     Command="{Binding RemoveRowCommand}"
@@ -309,12 +319,12 @@
                 </TabItem>
 
                 <TabItem Header="Settings">
-                    <StackPanel Margin="0,10,0,0">
+                    <StackPanel Margin="0,12,0,0">
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
                                 <TextBlock Text="Humanization" Style="{StaticResource SectionTitle}" />
-                                <CheckBox IsChecked="{Binding HumanizeEnabled}" Content="Enable timing variation (anti-detection jitter)" Margin="0,0,0,10" />
-                                <Grid Margin="0,4,0,4">
+                                <CheckBox IsChecked="{Binding HumanizeEnabled}" Content="Enable timing variation (anti-detection jitter)" Margin="0,0,0,12" />
+                                <Grid Margin="0,6,0,6">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="190" />
                                         <ColumnDefinition Width="220" />
@@ -324,7 +334,7 @@
                                     <Slider Grid.Column="1" Minimum="0" Maximum="20" Value="{Binding DelayJitterMs}" />
                                     <TextBlock Grid.Column="2" Text="{Binding DelayJitterMs, StringFormat={}{0} ms}" VerticalAlignment="Center" Margin="10,0,0,0" />
                                 </Grid>
-                                <Grid Margin="0,4,0,4">
+                                <Grid Margin="0,6,0,6">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="190" />
                                         <ColumnDefinition Width="220" />
@@ -334,7 +344,7 @@
                                     <Slider Grid.Column="1" Minimum="0" Maximum="20" Value="{Binding HoldJitterMs}" />
                                     <TextBlock Grid.Column="2" Text="{Binding HoldJitterMs, StringFormat={}{0} ms}" VerticalAlignment="Center" Margin="10,0,0,0" />
                                 </Grid>
-                                <Grid Margin="0,4,0,4">
+                                <Grid Margin="0,6,0,6">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="190" />
                                         <ColumnDefinition Width="220" />
@@ -344,7 +354,7 @@
                                     <Slider Grid.Column="1" Minimum="0" Maximum="6" Value="{Binding MoveJitterCounts}" />
                                     <TextBlock Grid.Column="2" Text="{Binding MoveJitterCounts, StringFormat={}{0} px}" VerticalAlignment="Center" Margin="10,0,0,0" />
                                 </Grid>
-                                <Grid Margin="0,4,0,0">
+                                <Grid Margin="0,6,0,0">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="190" />
                                         <ColumnDefinition Width="220" />
@@ -356,14 +366,14 @@
                                 </Grid>
                             </StackPanel>
                         </Border>
-                        <Border Style="{StaticResource Card}" Margin="0,12,0,0">
+                        <Border Style="{StaticResource Card}" Margin="0,14,0,0">
                             <StackPanel>
                                 <TextBlock Text="General" Style="{StaticResource SectionTitle}" />
-                                <CheckBox IsChecked="{Binding StartWithWindows}" Content="Start with Windows" Margin="0,0,0,8" />
-                                <CheckBox IsChecked="{Binding MinimizeToTray}" Content="Minimize to system tray instead of taskbar" Margin="0,0,0,12" />
+                                <CheckBox IsChecked="{Binding StartWithWindows}" Content="Start with Windows" Margin="0,0,0,10" />
+                                <CheckBox IsChecked="{Binding MinimizeToTray}" Content="Minimize to system tray instead of taskbar" Margin="0,0,0,14" />
                                 <TextBlock Style="{StaticResource Hint}"
                                            Text="AegisMouse 1.0 — works with any mouse: input is synthesized at the OS level (SendInput + low-level hooks), so no vendor driver is required. Timings are executed on a high-resolution timer (1 ms)." />
-                                <TextBlock Style="{StaticResource Hint}" Margin="0,8,0,0"
+                                <TextBlock Style="{StaticResource Hint}" Margin="0,10,0,0"
                                            Text="Legal note: automated input may violate the terms of service of some games. Use responsibly — only on games and servers that allow macros, never for cheating in competitive play." />
                             </StackPanel>
                         </Border>
@@ -372,8 +382,10 @@
             </TabControl>
         </Grid>
 
-        <!-- Status bar -->
-        <Border Grid.Row="2" CornerRadius="6" Padding="10,6" Margin="0,12,0,0">
+        <!-- ═══════════════════════════════════════════════════════════
+             STATUS BAR
+             ═══════════════════════════════════════════════════════════ -->
+        <Border Grid.Row="2" CornerRadius="8" Padding="14,8" Margin="0,14,0,0">
             <Border.Background>
                 <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
                     <GradientStop Color="#FF14181F" Offset="0" />
@@ -384,8 +396,8 @@
                 <DropShadowEffect BlurRadius="10" ShadowDepth="1" Opacity="0.25" Color="#FF000000" />
             </Border.Effect>
             <StackPanel Orientation="Horizontal">
-<TextBlock Text="{Binding StatusText}" Foreground="{StaticResource Muted}" FontSize="11.5"
-                       FontFamily="Cascadia Mono" TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource Muted}" FontSize="11.5"
+                           FontFamily="Cascadia Mono" TextTrimming="CharacterEllipsis" />
                 <TextBlock x:Name="CalibBadge" Text="CALIBRATING" Foreground="White" Background="{StaticResource Danger}"
                            FontSize="10" FontWeight="Bold" Padding="6,2" Margin="10,0,0,0" VerticalAlignment="Center" Visibility="Collapsed" />
             </StackPanel>
