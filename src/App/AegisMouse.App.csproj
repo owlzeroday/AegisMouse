@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>AegisMouse.App</RootNamespace>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <TargetFramework>net8.0-windows10.0.17763</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <ApplicationDefinition>App.xaml</ApplicationDefinition>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="Serilog" Version="4.0.2" />
+    <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Core\AegisMouse.Core.csproj" />
+    <ProjectReference Include="..\Database\AegisMouse.Database.csproj" />
+    <ProjectReference Include="..\Engine\AegisMouse.Engine.csproj" />
+  </ItemGroup>
+</Project>

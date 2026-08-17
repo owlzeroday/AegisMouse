@@ -1,0 +1,22 @@
+# Build output
+bin/
+obj/
+publish/
+*.user
+*.suo
+
+# Rider/VS
+.vs/
+.idea/
+*.DotSettings.user
+
+# Logs & local data
+logs/
+*.log
+
+# Installer output
+*.exe
+
+# OS
+Thumbs.db
+Desktop.ini

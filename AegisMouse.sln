@@ -1,0 +1,57 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{42A122D0-25AB-49E1-AB2F-6F7FE694079E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AegisMouse.Core", "src\Core\AegisMouse.Core.csproj", "{7BA470EB-1639-44F6-AC4A-010E1C73EEAC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AegisMouse.Engine", "src\Engine\AegisMouse.Engine.csproj", "{FFBCCB77-F750-4B8C-8FD3-85C96D3A0C7C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AegisMouse.Database", "src\Database\AegisMouse.Database.csproj", "{73FF9891-669F-422C-83B4-FA47F0DA6A26}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AegisMouse.App", "src\App\AegisMouse.App.csproj", "{48715569-C60A-4831-8BEF-60A0AC450C3A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{203295C5-6578-45CC-93C1-7F83CE337260}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AegisMouse.Tests", "tests\Tests\AegisMouse.Tests.csproj", "{07DDF05A-AE71-4165-A7CB-8051DB5238E8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7BA470EB-1639-44F6-AC4A-010E1C73EEAC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7BA470EB-1639-44F6-AC4A-010E1C73EEAC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7BA470EB-1639-44F6-AC4A-010E1C73EEAC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7BA470EB-1639-44F6-AC4A-010E1C73EEAC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FFBCCB77-F750-4B8C-8FD3-85C96D3A0C7C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FFBCCB77-F750-4B8C-8FD3-85C96D3A0C7C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FFBCCB77-F750-4B8C-8FD3-85C96D3A0C7C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FFBCCB77-F750-4B8C-8FD3-85C96D3A0C7C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{73FF9891-669F-422C-83B4-FA47F0DA6A26}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{73FF9891-669F-422C-83B4-FA47F0DA6A26}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{73FF9891-669F-422C-83B4-FA47F0DA6A26}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{73FF9891-669F-422C-83B4-FA47F0DA6A26}.Release|Any CPU.Build.0 = Release|Any CPU
+		{48715569-C60A-4831-8BEF-60A0AC450C3A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{48715569-C60A-4831-8BEF-60A0AC450C3A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{48715569-C60A-4831-8BEF-60A0AC450C3A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{48715569-C60A-4831-8BEF-60A0AC450C3A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{07DDF05A-AE71-4165-A7CB-8051DB5238E8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{07DDF05A-AE71-4165-A7CB-8051DB5238E8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{07DDF05A-AE71-4165-A7CB-8051DB5238E8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{07DDF05A-AE71-4165-A7CB-8051DB5238E8}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{7BA470EB-1639-44F6-AC4A-010E1C73EEAC} = {42A122D0-25AB-49E1-AB2F-6F7FE694079E}
+		{FFBCCB77-F750-4B8C-8FD3-85C96D3A0C7C} = {42A122D0-25AB-49E1-AB2F-6F7FE694079E}
+		{73FF9891-669F-422C-83B4-FA47F0DA6A26} = {42A122D0-25AB-49E1-AB2F-6F7FE694079E}
+		{48715569-C60A-4831-8BEF-60A0AC450C3A} = {42A122D0-25AB-49E1-AB2F-6F7FE694079E}
+		{07DDF05A-AE71-4165-A7CB-8051DB5238E8} = {203295C5-6578-45CC-93C1-7F83CE337260}
+	EndGlobalSection
+EndGlobal
