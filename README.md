@@ -2,6 +2,8 @@
 
 Universal mouse macro engine — works with any brand of mouse. Input is synthesized at the OS level (SendInput + low-level hooks), so no vendor driver is required.
 
+**Current version: 1.0.1**
+
 ## Features
 
 - **Rapid fire** — up to 1000+ RPM click automation on any button
@@ -13,6 +15,15 @@ Universal mouse macro engine — works with any brand of mouse. Input is synthes
 - **SQLite persistence** — all settings stored in `%ProgramData%\AegisMouse\data\aegismouse.db`
 - **Tray integration** — minimizes to system tray, optional start with Windows
 - **1 ms precision** — high-resolution timer execution
+
+## Security
+
+- Storage in `%ProgramData%\AegisMouse` is ACL-locked at startup — only the current user, Administrators, and SYSTEM have write access; standard users get read-only
+- Low-level hooks ignore injected input (mouse `LLMHF_INJECTED`, keyboard `LLKHF_INJECTED`), preventing feedback loops
+- Hook callbacks are exception-guarded so a failed dispatch cannot crash the process
+- Loop cancellation is race-safe — a re-pressed trigger always stops the correct macro loop
+- All persisted values are clamped on save (RPM, burst count, repeat, movement deltas, DPI, jitter) and SQL is fully parameterized
+- Single-instance mutex, no network surface, no hardcoded secrets, signed-less (supply-chain hardening planned)
 
 ## Tech stack
 
