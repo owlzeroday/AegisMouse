@@ -570,7 +570,7 @@
                         </Border>
                         <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,14,0,0">
                             <Button Content="Open vision debug" Style="{StaticResource AccentButton}" Click="OpenAimDebug_Click" />
-                            <TextBlock Text="Debug window = live frame + click-to-pick enemy color + save frame for analysis."
+                            <TextBlock Text="Opening the debug window minimizes AegisMouse so the game is visible. Click a bot's color in the preview to lock HSV, then close the window to test the pull."
                                        Foreground="{StaticResource Muted}" FontSize="11" VerticalAlignment="Center" Margin="14,0,0,0" />
                         </StackPanel>
                     </Grid>

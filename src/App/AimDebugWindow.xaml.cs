@@ -32,6 +32,12 @@ public partial class AimDebugWindow : Window
             aim.DebugFrame -= OnFrame;
             aim.DebugActive = false;
         };
+
+        // Dock to the bottom-right corner of the monitor the game is on, away from the crosshair
+        var wa = System.Windows.Forms.Screen.FromPoint(System.Windows.Forms.Cursor.Position).WorkingArea;
+        double dpi = VisualTreeHelper.GetDpi(this).DpiScaleX;
+        Left = wa.Right / dpi - Width - 16;
+        Top = wa.Bottom / dpi - Height - 16;
     }
 
     void OnFrame(AimFrame f)
@@ -109,6 +115,9 @@ public partial class AimDebugWindow : Window
         int i = (y * _last.Width + x) * 4;
         byte b = _last.Bgra[i], g = _last.Bgra[i + 1], r = _last.Bgra[i + 2];
         _vm.PickAimColor(b, g, r, tolerance: 8);
+        var (h, s, v) = AimVision.HsvOf(b, g, r);
+        PickedSwatch.Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(r, g, b));
+        PickedInfo.Text = $"R{r} G{g} B{b}  →  H{h} S{s} V{v}";
     }
 
     void SaveFrame_Click(object sender, RoutedEventArgs e)

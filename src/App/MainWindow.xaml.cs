@@ -89,7 +89,15 @@ public partial class MainWindow : Window
     {
         if (_debugWin is { } w && w.IsVisible) { w.Activate(); return; }
         _debugWin = new AimDebugWindow(_vm, _aim);
+        _debugWin.Closed += (_, _) =>
+        {
+            _debugWin = null;
+            RestoreFromTray();
+        };
         _debugWin.Show();
+
+        // Hide AegisMouse so the game screen (and the bots) are fully visible
+        WindowState = WindowState.Minimized;   // OnStateChanged hides it to the tray when MinimizeToTray is on
     }
 
     void UpdateCalibBadge()

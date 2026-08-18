@@ -2,9 +2,15 @@
 
 Universal mouse macro engine — works with any brand of mouse. Input is synthesized at the OS level (SendInput + low-level hooks), so no vendor driver is required.
 
-**Current version: 1.3.0**
+**Current version: 1.3.1**
 
 ## Changelog
+
+### 1.3.1 — Aim debug usability
+- Opening the vision debug window now minimizes AegisMouse to the tray so the game screen is fully visible; closing it restores the app
+- Debug window compacted and docked to the corner of the monitor the mouse is on (draggable/resizable) — no longer covers the crosshair
+- Click-to-pick now shows the picked color swatch + R/G/B → H/S/V values so you can see what was locked
+- Crosshair cursor + hint pill on the preview frame
 
 ### 1.3.0 — Soft aim assist
 - New "Aim Assist" tab — optional, per-profile, off by default (existing macro/recoil functions untouched)
