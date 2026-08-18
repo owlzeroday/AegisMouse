@@ -101,18 +101,18 @@ public partial class MainWindow : Window
         double cy = h - pad;
 
         // Axis lines (subtle)
-        var axisBrush = new SolidColorBrush(Color.FromRgb(0x1F, 0x26, 0x30));
+        var axisBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0x1F, 0x26, 0x30));
         RecoilCanvas.Children.Add(new Line { X1 = pad, Y1 = cy, X2 = w - pad, Y2 = cy, Stroke = axisBrush, StrokeThickness = 1 });
         RecoilCanvas.Children.Add(new Line { X1 = cx, Y1 = pad, X2 = cx, Y2 = h - pad, Stroke = axisBrush, StrokeThickness = 1 });
 
         // Recoil trajectory path
-        var accent = FindResource("Accent") as Brush;
+        var accent = FindResource("Accent") as System.Windows.Media.Brush;
         var geo = new StreamGeometry();
         using (var ctx = geo.Open())
         {
-            ctx.BeginFigure(cx + points[0].x * scale, cy - points[0].y * scale, false, false);
+            ctx.BeginFigure(new System.Windows.Point(cx + points[0].x * scale, cy - points[0].y * scale), false, false);
             foreach (var p in points.Skip(1))
-                ctx.LineTo(cx + p.x * scale, cy - p.y * scale);
+                ctx.LineTo(new System.Windows.Point(cx + p.x * scale, cy - p.y * scale), true, false);
         }
         RecoilCanvas.Children.Add(new System.Windows.Shapes.Path
         {

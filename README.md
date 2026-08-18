@@ -2,9 +2,18 @@
 
 Universal mouse macro engine — works with any brand of mouse. Input is synthesized at the OS level (SendInput + low-level hooks), so no vendor driver is required.
 
-**Current version: 1.1.0**
+**Current version: 1.2.0**
 
 ## Changelog
+
+### 1.2.0 — Premium UI + SaaS polish
+- Tab icons on every section, license badge, accent line under the header
+- Recoil pattern visualizer — live trajectory canvas (cumulative Dx/Dy path with shot dots)
+- Delete-confirm popovers for profiles, bindings, macro actions, and recoil rows (no accidental deletes)
+- Empty states for the Macros and Recoil grids
+- Enhanced status bar and sidebar indicator
+- F9 hint for calibration
+- Fixed TabItem nesting bug and recoil-visualizer API errors introduced during the redesign
 
 ### 1.1.0 — Arch terminal UI redesign
 - Redesigned header — redundant "AM" logo icon removed, title/subtitle left-aligned
