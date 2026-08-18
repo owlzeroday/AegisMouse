@@ -14,7 +14,7 @@
         <Color x:Key="AccentColor">#FF00E676</Color>
         <Color x:Key="AccentHoverColor">#FF2BF08C</Color>
         <Color x:Key="AccentPressedColor">#FF00C853</Color>
-        <Color x:Key="AccentTintColor">#1400E676</Color>
+        <Color x:Key="AccentTintColor">#2800E676</Color>
         <Color x:Key="TextColor">#FFFFFFFF</Color>
         <Color x:Key="MutedColor">#FFA6B0BC</Color>
         <Color x:Key="DangerColor">#FFFF5252</Color>
@@ -399,6 +399,7 @@
                                 <Setter Property="Foreground" Value="{StaticResource Accent}" />
                                 <Setter TargetName="bd" Property="Background" Value="{StaticResource AccentTint}" />
                                 <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource Accent}" />
+                                <Setter TargetName="bd" Property="BorderThickness" Value="1,1,1,2" />
                             </Trigger>
                             <MultiTrigger>
                                 <MultiTrigger.Conditions>

@@ -86,8 +86,9 @@ menu.Items.Add("Open AegisMouse", null, (_, _) => RestoreFromTray());
     {
         base.OnSourceInitialized(e);
         var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
-        if (!ModernChrome.Apply(hwnd))
-            Background = FindResource("BgSolid") as System.Windows.Media.Brush;
+        ModernChrome.Apply(hwnd);
+        // Always force solid black — no translucent OS backdrop.
+        Background = FindResource("BgSolid") as System.Windows.Media.Brush;
     }
 
     protected override void OnClosed(EventArgs e)
