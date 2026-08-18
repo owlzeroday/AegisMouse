@@ -2,9 +2,15 @@
 
 Universal mouse macro engine — works with any brand of mouse. Input is synthesized at the OS level (SendInput + low-level hooks), so no vendor driver is required.
 
-**Current version: 1.2.0**
+**Current version: 1.3.0**
 
 ## Changelog
+
+### 1.3.0 — Soft aim assist
+- New "Aim Assist" tab — optional, per-profile, off by default (existing macro/recoil functions untouched)
+- Color-vision target detection (pure C#, HSV + scanline connected components — no native dependencies)
+- Hold-to-arm trigger (mouse button or keyboard key), FOV radius, pull strength (fractional pull per frame — no hard lock), max turn rate, aim-point offset, min target size
+- Vision debug window — live frame, FOV/target overlays, click-to-pick enemy color, save frame + settings for analysis (`%ProgramData%\AegisMouse\aimdebug\`)
 
 ### 1.2.0 — Premium UI + SaaS polish
 - Tab icons on every section, license badge, accent line under the header

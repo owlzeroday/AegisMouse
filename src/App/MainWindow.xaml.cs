@@ -5,7 +5,9 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using AegisMouse.App.ViewModels;
+using AegisMouse.Core;
 using AegisMouse.Database;
+using AegisMouse.Engine;
 using Serilog;
 
 namespace AegisMouse.App;
@@ -13,9 +15,22 @@ namespace AegisMouse.App;
 public partial class MainWindow : Window
 {
     readonly MainViewModel _vm;
+    readonly AimAssistService _aim = new();
+    AimDebugWindow? _debugWin;
+    bool _aimArmedMouse, _aimArmedKey;
     System.Windows.Forms.NotifyIcon? _tray;
     bool _trayMinimized;
     bool _exiting;
+
+    static readonly string[] AimProps =
+    [
+        nameof(MainViewModel.AimEnabled), nameof(MainViewModel.AimTrigger), nameof(MainViewModel.AimTriggerVk),
+        nameof(MainViewModel.AimFovRadius), nameof(MainViewModel.AimPull), nameof(MainViewModel.AimMaxTurn),
+        nameof(MainViewModel.AimOffsetPct), nameof(MainViewModel.AimMinSize), nameof(MainViewModel.AimHueMin),
+        nameof(MainViewModel.AimHueMax), nameof(MainViewModel.AimSatMin), nameof(MainViewModel.AimValMin),
+        nameof(MainViewModel.AimCaptureRadius),
+        nameof(MainViewModel.HumanizeEnabled), nameof(MainViewModel.MoveJitterCounts)
+    ];
 
     public MainWindow()
     {
@@ -26,6 +41,7 @@ public partial class MainWindow : Window
         _vm.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(MainViewModel.Calibrating)) UpdateCalibBadge();
+            if (AimProps.Contains(e.PropertyName)) PushAimSettings();
         };
         StateChanged += OnStateChanged;
         Closing += OnClosing;
@@ -35,6 +51,45 @@ public partial class MainWindow : Window
         _vm.RecoilRows.CollectionChanged += OnRecoilRowsChanged;
         Loaded += (_, _) => DrawRecoilPattern();
         RecoilCanvas.SizeChanged += (_, _) => DrawRecoilPattern();
+
+        // Aim assist: service + trigger arming (hook events arrive on the hook thread — volatile flags are safe)
+        _aim.Start(_vm.BuildAimSettings(), _vm.BuildHumanizeSettings());
+        if (App.Engine is { } engine)
+        {
+            engine.KeyEvent += OnAimKeyEvent;
+            engine.ButtonEvent += OnAimButtonEvent;
+        }
+    }
+
+    void PushAimSettings()
+    {
+        _aim.SetSettings(_vm.BuildAimSettings());
+        _aim.SetHumanize(_vm.BuildHumanizeSettings());
+    }
+
+    void OnAimKeyEvent(int vk, bool down)
+    {
+        if (_vm.AimTriggerVk != 0 && vk == _vm.AimTriggerVk)
+        {
+            _aimArmedKey = down;
+            _aim.SetArmed(_aimArmedKey || _aimArmedMouse);
+        }
+    }
+
+    void OnAimButtonEvent(MouseButton button, bool down)
+    {
+        if (_vm.AimTrigger is { } t && button == t)
+        {
+            _aimArmedMouse = down;
+            _aim.SetArmed(_aimArmedKey || _aimArmedMouse);
+        }
+    }
+
+    void OpenAimDebug_Click(object sender, RoutedEventArgs e)
+    {
+        if (_debugWin is { } w && w.IsVisible) { w.Activate(); return; }
+        _debugWin = new AimDebugWindow(_vm, _aim);
+        _debugWin.Show();
     }
 
     void UpdateCalibBadge()
@@ -193,6 +248,8 @@ menu.Items.Add("Open AegisMouse", null, (_, _) => RestoreFromTray());
 
     protected override void OnClosed(EventArgs e)
     {
+        _aim.Dispose();
+        _debugWin?.Close();
         _tray?.Dispose();
         _tray = null;
         base.OnClosed(e);

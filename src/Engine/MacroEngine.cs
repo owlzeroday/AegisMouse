@@ -28,6 +28,12 @@ public sealed class MacroEngine : IDisposable
 
     public event Action? StateChanged;
 
+    /// <summary>Raw physical key events (for aim-assist triggers). Raised on the hook thread.</summary>
+    public event Action<int, bool>? KeyEvent;
+
+    /// <summary>Raw physical button events (for aim-assist triggers). Raised on the hook thread.</summary>
+    public event Action<MouseButton, bool>? ButtonEvent;
+
     public GameProfile? Profile => _profile;
     public bool Enabled => _enabled;
     public bool IsCalibrating => _calibrating;
@@ -39,6 +45,7 @@ public sealed class MacroEngine : IDisposable
     {
         _hook.Button += OnMouseButton;
         _hook.Wheel += OnWheel;
+        _hook.Key += (vk, down) => KeyEvent?.Invoke(vk, down);
     }
 
     public void Start()
@@ -78,6 +85,7 @@ public sealed class MacroEngine : IDisposable
             else _held.Remove(button);
         }
         if (!down) Cancel(button);
+        ButtonEvent?.Invoke(button, down);
 
         if (!_enabled || _profile is null) return;
 

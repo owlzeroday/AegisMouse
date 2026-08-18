@@ -1,0 +1,176 @@
+using System.Diagnostics;
+using System.Drawing;
+using System.Drawing.Imaging;
+using AegisMouse.Core;
+using AegisMouse.Engine.Interop;
+using AegisMouse.Engine.Timing;
+using Serilog;
+
+namespace AegisMouse.Engine;
+
+/// <summary>One processed frame delivered to the debug vision window.</summary>
+public sealed class AimFrame
+{
+    public required byte[] Bgra { get; init; }
+    public required int Width { get; init; }
+    public required int Height { get; init; }
+    public int CaptureMs { get; init; }
+    public int DetectMs { get; init; }
+    /// <summary>Crosshair center in capture-space (the capture region's center pixel).</summary>
+    public int CenterX { get; init; }
+    public int CenterY { get; init; }
+    public int ScreenLeft { get; init; }
+    public int ScreenTop { get; init; }
+    public int FovRadiusPx { get; init; }
+    public required List<AimTarget> Targets { get; init; }
+    public AimTarget? Selected { get; init; }
+    public double DistancePx { get; init; }
+    public bool Armed { get; init; }
+    public string? Status { get; init; }
+}
+
+/// <summary>
+/// Soft aim assist loop: captures the region around the cursor, color-detects targets,
+/// and pulls the mouse a fraction of the remaining distance toward the nearest in-FOV
+/// target while the trigger is held. Frames are also streamed to the debug window so the
+/// vision can be tuned live. Idle cost is zero — capture only runs while armed/debug.
+/// </summary>
+public sealed class AimAssistService : IDisposable
+{
+    readonly Stopwatch _sw = Stopwatch.StartNew();
+    volatile bool _running;
+    volatile bool _armed;
+    volatile bool _debug;
+    AimAssistSettings? _settings;
+    HumanizeSettings? _humanize;
+    readonly Humanizer _humanizer = new();
+    Thread? _thread;
+
+    /// <summary>Debug/vision frames (raised on the capture thread; only while the debug window is open).</summary>
+    public event Action<AimFrame>? DebugFrame;
+
+    public bool DebugActive { get => _debug; set { _debug = value; } }
+
+    public void Start(AimAssistSettings settings, HumanizeSettings humanize)
+    {
+        _settings = settings;
+        _humanize = humanize;
+        if (_running) return;
+        _running = true;
+        _thread = new Thread(Loop) { IsBackground = true, Name = "AimAssist" };
+        _thread.Start();
+        Log.Information("Aim assist service started");
+    }
+
+    public void SetSettings(AimAssistSettings s) => _settings = s;
+    public void SetHumanize(HumanizeSettings h) => _humanize = h;
+
+    /// <summary>True while the trigger key/button is held (or debug vision is open).</summary>
+    public void SetArmed(bool armed) => _armed = armed;
+
+    void Loop()
+    {
+        while (_running)
+        {
+            var s = _settings;
+            var h = _humanize;
+            if (s is null || h is null) { Thread.Sleep(50); continue; }
+            if (!_armed && !_debug) { Thread.Sleep(120); continue; }
+
+            int size = Math.Clamp(s.CaptureRadiusPx, 48, 900) * 2;
+            var cursor = Cursor.Position;
+
+            var cap = Capture(cursor.X - size / 2, cursor.Y - size / 2, size, size);
+            if (cap is null) { Thread.Sleep(33); continue; }
+
+            var sw = Stopwatch.StartNew();
+            var targets = AimVision.Detect(cap.Bgra, cap.Width, cap.Height, s);
+            int detectMs = (int)sw.ElapsedMilliseconds;
+
+            int cx = cap.Width / 2, cy = cap.Height / 2;
+            var sel = _armed && s.Enabled
+                ? AimVision.SelectTarget(targets, cx, cy, s.FovRadiusPx)
+                : null;
+            double dist = sel is null ? 0 : Math.Sqrt(Math.Pow(sel.CenterX - cx, 2) + Math.Pow(sel.CenterY - cy, 2));
+
+            if (sel is not null)
+            {
+                int aimY = sel.AimY(Math.Clamp(s.AimOffsetPct, 0, 100));
+                int dx = sel.CenterX - cx, dy = aimY - cy;
+                double d = Math.Sqrt(dx * dx + dy * dy);
+                if (d > s.DeadzonePx)
+                {
+                    double pull = Math.Min(d * Math.Clamp(s.PullStrength, 0.01, 0.99), s.MaxTurnPxPerFrame);
+                    int mx = (int)Math.Round(dx / d * pull);
+                    int my = (int)Math.Round(dy / d * pull);
+                    var (jx, jy) = _humanizer.Move(mx, my, h);
+                    NativeInput.MoveRelative(jx, jy);
+                }
+            }
+
+            // Stream to debug window (throttled by the loop rate; copies only when a sink exists)
+            if (_debug)
+            {
+                var frame = new AimFrame
+                {
+                    Bgra = cap.Bgra,
+                    Width = cap.Width,
+                    Height = cap.Height,
+                    CaptureMs = cap.CaptureMs,
+                    DetectMs = detectMs,
+                    CenterX = cx,
+                    CenterY = cy,
+                    ScreenLeft = cap.Left,
+                    ScreenTop = cap.Top,
+                    FovRadiusPx = s.FovRadiusPx,
+                    Targets = targets,
+                    Selected = sel,
+                    DistancePx = dist,
+                    Armed = _armed
+                };
+                DebugFrame?.Invoke(frame);
+            }
+
+            Thread.Sleep(_debug ? 33 : 16);
+        }
+    }
+
+    static CapturedRegion? Capture(int left, int top, int width, int height)
+    {
+        var vs = System.Windows.Forms.SystemInformation.VirtualScreen;
+        int l = Math.Max(left, vs.Left), t = Math.Max(top, vs.Top);
+        int r = Math.Min(left + width, vs.Left + vs.Width), b = Math.Min(top + height, vs.Top + vs.Height);
+        if (r <= l || b <= t) return null;
+        int w = r - l, h = b - t;
+
+        var sw = Stopwatch.StartNew();
+        try
+        {
+            using var bmp = new Bitmap(w, h, PixelFormat.Format32bppArgb);
+            using (var g = Graphics.FromImage(bmp))
+                g.CopyFromScreen(l, t, 0, 0, new Size(w, h));
+            var data = bmp.LockBits(new Rectangle(0, 0, w, h), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+            try
+            {
+                var bytes = new byte[w * h * 4];
+                System.Runtime.InteropServices.Marshal.Copy(data.Scan0, bytes, 0, bytes.Length);
+                return new CapturedRegion(bytes, w, h, l, t, (int)sw.ElapsedMilliseconds);
+            }
+            finally { bmp.UnlockBits(data); }
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Screen capture failed");
+            return null;
+        }
+    }
+
+    sealed record CapturedRegion(byte[] Bgra, int Width, int Height, int Left, int Top, int CaptureMs);
+
+    public void Dispose()
+    {
+        _running = false;
+        try { _thread?.Join(500); } catch { }
+        _thread = null;
+    }
+}

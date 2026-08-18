@@ -122,6 +122,8 @@ public sealed class GameProfile
     /// <summary>Global intensity multiplier for recoil compensation (0.0 .. 2.0).</summary>
     public double RecoilStrength { get; set; } = 1.0;
     public HumanizeSettings Humanize { get; set; } = new();
+    /// <summary>Soft aim assist (magnetic pull) for this profile. Null until first saved.</summary>
+    public AimAssistSettings? AimAssist { get; set; }
 }
 
 /// <summary>Application-wide settings.</summary>
@@ -132,6 +134,39 @@ public sealed class AppSettings
     /// <summary>Request 1 ms timer resolution while macros run.</summary>
     public bool UseHighResTimer { get; set; } = true;
     public string LastProfileId { get; set; } = "";
+}
+
+/// <summary>
+/// Soft aim assist: magnetic pull toward color-detected targets while the trigger is held.
+/// Pulls only a fraction of the remaining distance per frame (never a hard lock), capped
+/// by a max turn speed, so the player stays in the loop.
+/// </summary>
+public sealed class AimAssistSettings
+{
+    public bool Enabled { get; set; }
+    /// <summary>Hold this mouse button to arm the assist (e.g. Right = ADS). Null = any.</summary>
+    public MouseButton? Trigger { get; set; }
+    /// <summary>Alternative keyboard trigger (virtual-key code). 0 = none.</summary>
+    public int TriggerVk { get; set; }
+    /// <summary>Targets further from the crosshair than this (px) are ignored.</summary>
+    public int FovRadiusPx { get; set; } = 150;
+    /// <summary>Fraction of the remaining distance moved per frame (0.05 .. 0.99).</summary>
+    public double PullStrength { get; set; } = 0.75;
+    /// <summary>Hard cap on mouse movement per frame (px) — limits snap speed.</summary>
+    public int MaxTurnPxPerFrame { get; set; } = 10;
+    /// <summary>Stop assisting once the target is within this many px of the crosshair.</summary>
+    public int DeadzonePx { get; set; } = 4;
+    /// <summary>Aim point: % down from the top of the detected box (18 ≈ head).</summary>
+    public int AimOffsetPct { get; set; } = 18;
+    /// <summary>Detected blobs smaller than this (px) are noise and ignored.</summary>
+    public int MinTargetSizePx { get; set; } = 10;
+    /// <summary>HSV target color. Hue 0..179, S/V 0..255 (OpenCV convention).</summary>
+    public int HueMin { get; set; }
+    public int HueMax { get; set; } = 179;
+    public int SatMin { get; set; } = 80;
+    public int ValMin { get; set; } = 60;
+    /// <summary>Half-side of the square capture region around the crosshair (px).</summary>
+    public int CaptureRadiusPx { get; set; } = 240;
 }
 
 public static class Presets

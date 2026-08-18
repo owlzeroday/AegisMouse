@@ -215,6 +215,19 @@ public sealed partial class MainViewModel : ObservableObject
                 case nameof(StepSkipPercent):
                 case nameof(StartWithWindows):
                 case nameof(MinimizeToTray):
+                case nameof(AimEnabled):
+                case nameof(AimTrigger):
+                case nameof(AimTriggerVk):
+                case nameof(AimFovRadius):
+                case nameof(AimPull):
+                case nameof(AimMaxTurn):
+                case nameof(AimOffsetPct):
+                case nameof(AimMinSize):
+                case nameof(AimHueMin):
+                case nameof(AimHueMax):
+                case nameof(AimSatMin):
+                case nameof(AimValMin):
+                case nameof(AimCaptureRadius):
                     _saveTimer.Stop(); _saveTimer.Start();
                     break;
             }
@@ -289,6 +302,21 @@ public sealed partial class MainViewModel : ObservableObject
             HoldJitterMs = h.HoldJitterMs;
             MoveJitterCounts = h.MoveJitterCounts;
             StepSkipPercent = h.StepSkipPercent;
+
+            var a = m.AimAssist ?? new AimAssistSettings();
+            AimEnabled = a.Enabled;
+            AimTrigger = a.Trigger;
+            AimTriggerVk = a.TriggerVk;
+            AimFovRadius = a.FovRadiusPx;
+            AimPull = a.PullStrength;
+            AimMaxTurn = a.MaxTurnPxPerFrame;
+            AimOffsetPct = a.AimOffsetPct;
+            AimMinSize = a.MinTargetSizePx;
+            AimHueMin = a.HueMin;
+            AimHueMax = a.HueMax;
+            AimSatMin = a.SatMin;
+            AimValMin = a.ValMin;
+            AimCaptureRadius = a.CaptureRadiusPx;
 
             Bindings.Clear();
             foreach (var b in m.Bindings)
@@ -366,6 +394,7 @@ public sealed partial class MainViewModel : ObservableObject
                 m.Bindings = Bindings.Select(b => b.Build()).ToList();
                 m.RecoilTable = RecoilRows.Select(r => r.Build()).ToList();
                 for (int i = 0; i < m.RecoilTable.Count; i++) m.RecoilTable[i].Shot = i + 1;
+                m.AimAssist = BuildAimSettings();
 
                 _db.SaveProfile(m);
                 _engine.SetProfile(m);
@@ -408,6 +437,76 @@ public sealed partial class MainViewModel : ObservableObject
 
     [ObservableProperty] bool calibrating;
     [ObservableProperty] string statusText = "Ready â€” bind a side button to rapid fire, then hold it in-game.";
+
+    // ── Aim assist ─────────────────────────────────────────────────
+    [ObservableProperty] bool aimEnabled;
+    [ObservableProperty] MouseButton? aimTrigger;
+    [ObservableProperty] int aimTriggerVk;
+    [ObservableProperty] double aimFovRadius = 150;
+    [ObservableProperty] double aimPull = 0.75;
+    [ObservableProperty] double aimMaxTurn = 10;
+    [ObservableProperty] int aimOffsetPct = 18;
+    [ObservableProperty] int aimMinSize = 10;
+    [ObservableProperty] int aimHueMin;
+    [ObservableProperty] int aimHueMax = 179;
+    [ObservableProperty] int aimSatMin = 80;
+    [ObservableProperty] int aimValMin = 60;
+    [ObservableProperty] int aimCaptureRadius = 240;
+
+    /// <summary>Builds the current aim-assist settings (clamped).</summary>
+    public AimAssistSettings BuildAimSettings() => new()
+    {
+        Enabled = AimEnabled,
+        Trigger = AimTrigger,
+        TriggerVk = Math.Clamp(AimTriggerVk, 0, 255),
+        FovRadiusPx = (int)Math.Clamp(AimFovRadius, 8, 900),
+        PullStrength = Math.Clamp(AimPull, 0.05, 0.99),
+        MaxTurnPxPerFrame = (int)Math.Clamp(AimMaxTurn, 1, 60),
+        AimOffsetPct = Math.Clamp(AimOffsetPct, 0, 100),
+        MinTargetSizePx = Math.Clamp(AimMinSize, 3, 400),
+        HueMin = Math.Clamp(AimHueMin, 0, 179),
+        HueMax = Math.Clamp(AimHueMax, 0, 179),
+        SatMin = Math.Clamp(AimSatMin, 0, 255),
+        ValMin = Math.Clamp(AimValMin, 0, 255),
+        CaptureRadiusPx = Math.Clamp(AimCaptureRadius, 48, 900)
+    };
+
+    /// <summary>Current humanization settings (for the aim-assist jitter).</summary>
+    public HumanizeSettings BuildHumanizeSettings() => new()
+    {
+        Enabled = HumanizeEnabled,
+        DelayJitterMs = DelayJitterMs,
+        HoldJitterMs = HoldJitterMs,
+        MoveJitterCounts = MoveJitterCounts,
+        StepSkipPercent = StepSkipPercent
+    };
+
+    /// <summary>Keyboard triggers for aim assist (Vk 0 = mouse trigger only).</summary>
+    public IReadOnlyList<KeyOption> AimKeys { get; } =
+        new KeyOption[] { new() { Vk = 0, Name = "None (mouse button)" } }
+            .Concat(new[]
+            {
+                new KeyOption { Vk = 0xA0, Name = "Left Shift" }, new KeyOption { Vk = 0xA2, Name = "Left Ctrl" },
+                new KeyOption { Vk = 0xA4, Name = "Left Alt" }, new KeyOption { Vk = 0xA1, Name = "Right Shift" },
+                new KeyOption { Vk = 0xA3, Name = "Right Ctrl" }, new KeyOption { Vk = 0xA5, Name = "Right Alt" },
+                new KeyOption { Vk = Vk.X, Name = "X" }, new KeyOption { Vk = Vk.C, Name = "C" }, new KeyOption { Vk = Vk.V, Name = "V" },
+                new KeyOption { Vk = Vk.Q, Name = "Q" }, new KeyOption { Vk = Vk.E, Name = "E" }, new KeyOption { Vk = Vk.F, Name = "F" },
+                new KeyOption { Vk = Vk.G, Name = "G" }, new KeyOption { Vk = Vk.F1, Name = "F1" }, new KeyOption { Vk = Vk.F2, Name = "F2" },
+                new KeyOption { Vk = Vk.F3, Name = "F3" }, new KeyOption { Vk = Vk.F4, Name = "F4" }, new KeyOption { Vk = Vk.F5, Name = "F5" },
+                new KeyOption { Vk = Vk.F6, Name = "F6" }, new KeyOption { Vk = Vk.F7, Name = "F7" }, new KeyOption { Vk = Vk.F8, Name = "F8" },
+            })
+            .ToArray();
+
+    /// <summary>Click-to-pick color on the debug frame: sets the HSV range around the sampled pixel.</summary>
+    public void PickAimColor(byte b, byte g, byte r, int tolerance)
+    {
+        (int hue, int sat, int val) = AegisMouse.Engine.AimVision.HsvOf(b, g, r);
+        AimHueMin = Math.Max(0, hue - tolerance);
+        AimHueMax = Math.Min(179, hue + tolerance);
+        AimSatMin = Math.Max(0, sat - 40);
+        AimValMin = Math.Max(0, val - 40);
+        StatusText = $"Picked H {hue} · S {sat} · V {val} (0..179/0..255) — box enemies, tune sliders if needed.";
+    }
 
     void ApplyStartWithWindows()
     {

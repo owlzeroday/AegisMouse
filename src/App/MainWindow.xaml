@@ -476,6 +476,111 @@
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <Path Width="14" Height="14" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=TabItem}}"
                               StrokeThickness="1.5" Fill="Transparent" Margin="0,0,6,0"
+                              Data="M 7 3 L 7 5.5 M 7 8.5 L 7 11 M 3 7 L 5.5 7 M 8.5 7 L 11 7" />
+                        <TextBlock Text="Aim Assist" />
+                    </StackPanel>
+                </TabItem.Header>
+                    <Grid Margin="0,12,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Soft aim assist — magnetic pull, no hard lock" Style="{StaticResource SectionTitle}" />
+                                <CheckBox IsChecked="{Binding AimEnabled}" Content="Enable aim assist for this profile" Margin="0,0,0,12" />
+                                <Grid Margin="0,6,0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="190" />
+                                        <ColumnDefinition Width="220" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Hold-to-aim mouse button" VerticalAlignment="Center" />
+                                    <ComboBox Grid.Column="1" ItemsSource="{Binding ArmOptions}" SelectedValuePath="Key" DisplayMemberPath="Value"
+                                              SelectedValue="{Binding AimTrigger}" />
+                                </Grid>
+                                <Grid Margin="0,6,0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="190" />
+                                        <ColumnDefinition Width="220" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="…or keyboard key" VerticalAlignment="Center" />
+                                    <ComboBox Grid.Column="1" ItemsSource="{Binding AimKeys}" SelectedValuePath="Vk" DisplayMemberPath="Name"
+                                              SelectedValue="{Binding AimTriggerVk}" />
+                                </Grid>
+                                <Grid Margin="0,6,0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="190" />
+                                        <ColumnDefinition Width="220" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="FOV radius (px)" VerticalAlignment="Center" />
+                                    <Slider Grid.Column="1" Minimum="20" Maximum="500" Value="{Binding AimFovRadius}" />
+                                    <TextBlock Grid.Column="2" Text="{Binding AimFovRadius, StringFormat={}{0:0} px}" VerticalAlignment="Center" Margin="10,0,0,0" />
+                                </Grid>
+                                <Grid Margin="0,6,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="190" />
+                                        <ColumnDefinition Width="220" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Pull strength" VerticalAlignment="Center" />
+                                    <Slider Grid.Column="1" Minimum="10" Maximum="95" Value="{Binding AimPull}" />
+                                    <TextBlock Grid.Column="2" Text="{Binding AimPull, StringFormat={}{0:P0}}" VerticalAlignment="Center" Margin="10,0,0,0" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Row="1" Style="{StaticResource Card}" Margin="0,14,0,0">
+                            <StackPanel>
+                                <TextBlock Text="Color vision (HSV)" Style="{StaticResource SectionTitle}" />
+                                <Grid Margin="0,0,0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="190" />
+                                        <ColumnDefinition Width="160" />
+                                        <ColumnDefinition Width="160" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Hue range" VerticalAlignment="Center" />
+                                    <Slider Grid.Column="1" Minimum="0" Maximum="179" Value="{Binding AimHueMin}" VerticalAlignment="Center" />
+                                    <Slider Grid.Column="2" Minimum="0" Maximum="179" Value="{Binding AimHueMax}" VerticalAlignment="Center" Margin="10,0,0,0" />
+                                </Grid>
+                                <Grid Margin="0,6,0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="190" />
+                                        <ColumnDefinition Width="160" />
+                                        <ColumnDefinition Width="160" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Min saturation / value" VerticalAlignment="Center" />
+                                    <Slider Grid.Column="1" Minimum="0" Maximum="255" Value="{Binding AimSatMin}" VerticalAlignment="Center" />
+                                    <Slider Grid.Column="2" Minimum="0" Maximum="255" Value="{Binding AimValMin}" VerticalAlignment="Center" Margin="10,0,0,0" />
+                                </Grid>
+                                <Grid Margin="0,6,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="190" />
+                                        <ColumnDefinition Width="160" />
+                                        <ColumnDefinition Width="160" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Min target size (px)" VerticalAlignment="Center" />
+                                    <Slider Grid.Column="1" Minimum="3" Maximum="120" Value="{Binding AimMinSize}" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="2" Text="{Binding AimMinSize, StringFormat={}{0:0} px}" VerticalAlignment="Center" Margin="10,0,0,0" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,14,0,0">
+                            <Button Content="Open vision debug" Style="{StaticResource AccentButton}" Click="OpenAimDebug_Click" />
+                            <TextBlock Text="Debug window = live frame + click-to-pick enemy color + save frame for analysis."
+                                       Foreground="{StaticResource Muted}" FontSize="11" VerticalAlignment="Center" Margin="14,0,0,0" />
+                        </StackPanel>
+                    </Grid>
+                </TabItem>
+
+                <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Path Width="14" Height="14" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=TabItem}}"
+                              StrokeThickness="1.5" Fill="Transparent" Margin="0,0,6,0"
                               Data="M 7 3 A 4 4 0 1 0 7 11 A 4 4 0 1 0 7 3 M 7 5.5 A 1.5 1.5 0 1 0 7 8.5 A 1.5 1.5 0 1 0 7 5.5" />
                         <TextBlock Text="Settings" />
                     </StackPanel>
