@@ -2,7 +2,24 @@
 
 Universal mouse macro engine — works with any brand of mouse. Input is synthesized at the OS level (SendInput + low-level hooks), so no vendor driver is required.
 
-**Current version: 1.0.1**
+**Current version: 1.1.0**
+
+## Changelog
+
+### 1.1.0 — Arch terminal UI redesign
+- Redesigned header — redundant "AM" logo icon removed, title/subtitle left-aligned
+- True solid-black canvas (Linux/terminal aesthetic) — Mica/Acrylic translucent backdrops disabled, dark title bar applied first
+- Arch-style tab styling — stronger accent tint on selected tabs with bottom accent underline
+- Fixed header overlap and invisible dropdown/tab text (explicit white text in ComboBox items)
+- Fixed encoding bug in the profile summary (mojibake `Â·` → `·`)
+
+### 1.0.1 — Security hardening
+- Fixed loop-cancellation race — a re-pressed trigger always stops the correct macro loop (no orphaned/overrun macros)
+- Keyboard hooks now use the correct injected-input flag (`LLKHF_INJECTED`), preventing future feedback loops
+- Hook callbacks exception-guarded — a failed dispatch cannot crash the process
+- Thread-safe humanizer RNG and save pipeline (no cross-thread collection access)
+- Value clamps on save (RPM, burst, repeat, movement, DPI, jitter)
+- Storage ACL lockdown — `%ProgramData%\AegisMouse` write-restricted to the current user, Administrators, and SYSTEM
 
 ## Features
 
