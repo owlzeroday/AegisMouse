@@ -23,21 +23,8 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <!-- Logo + title grouped together -->
+            <!-- Title -->
             <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                <Border Width="36" Height="36" CornerRadius="9" Margin="0,0,12,0">
-                    <Border.Background>
-                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                            <GradientStop Color="{StaticResource AccentColor}" Offset="0" />
-                            <GradientStop Color="{StaticResource AccentPressedColor}" Offset="1" />
-                        </LinearGradientBrush>
-                    </Border.Background>
-                    <Border.Effect>
-                        <DropShadowEffect BlurRadius="10" ShadowDepth="0" Opacity="0.35" Color="{StaticResource AccentColor}" />
-                    </Border.Effect>
-                    <TextBlock Text="AM" Foreground="#FF0B0E13" FontWeight="Bold" FontSize="15"
-                               HorizontalAlignment="Center" VerticalAlignment="Center" />
-                </Border>
                 <TextBlock Text="AegisMouse" FontSize="18" FontWeight="Bold" VerticalAlignment="Center" />
                 <TextBlock Text="  universal mouse macros — any brand" Foreground="{StaticResource Muted}"
                            FontSize="12" VerticalAlignment="Center" Margin="8,2,0,0" />
