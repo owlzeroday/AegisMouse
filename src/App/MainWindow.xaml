@@ -498,8 +498,8 @@
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Text="Hold-to-aim mouse button" VerticalAlignment="Center" />
-                                    <ComboBox Grid.Column="1" ItemsSource="{Binding ArmOptions}" SelectedValuePath="Key" DisplayMemberPath="Value"
-                                              SelectedValue="{Binding AimTrigger}" />
+                                    <ComboBox Grid.Column="1" ItemsSource="{Binding ArmOptions}" DisplayMemberPath="Label"
+                                                  SelectedItem="{Binding AimTriggerOption}" />
                                 </Grid>
                                 <Grid Margin="0,6,0,6">
                                     <Grid.ColumnDefinitions>

@@ -2,9 +2,12 @@
 
 Universal mouse macro engine — works with any brand of mouse. Input is synthesized at the OS level (SendInput + low-level hooks), so no vendor driver is required.
 
-**Current version: 1.3.3**
+**Current version: 1.3.4**
 
 ## Changelog
+
+### 1.3.4 — Aim trigger dropdown fix
+- "Hold-to-aim mouse button" ComboBox was unclickable (WPF bug: null-key item in `SelectedValue`/`KeyValuePair` binding) — rewired to a wrapper class + `SelectedItem` binding; Left/Right/Middle/Side1/Side2 now selectable
 
 ### 1.3.3 — Steady debug frame + hotkey fixes
 - Debug preview is now frozen at the position where you opened it — moving the mouse no longer shifts the frame (cyan box shows your live cursor instead)

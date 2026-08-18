@@ -1,5 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using System.IO;
+using System.Linq;
 using System.Windows;
 using AegisMouse.Core;
 using AegisMouse.Database;
@@ -15,6 +16,13 @@ namespace AegisMouse.App.ViewModels;
 public sealed class ModeOption
 {
     public required BindingMode Mode { get; init; }
+    public required string Label { get; init; }
+    public override string ToString() => Label;
+}
+
+public sealed class ArmOption
+{
+    public MouseButton? Button { get; init; }
     public required string Label { get; init; }
     public override string ToString() => Label;
 }
@@ -142,14 +150,14 @@ public sealed partial class MainViewModel : ObservableObject
         new() { Mode = BindingMode.RapidFireRecoil, Label = "Rapid fire + Recoil" },
         new() { Mode = BindingMode.KeyRemap, Label = "Key remap" },
     ];
-    public IReadOnlyList<KeyValuePair<MouseButton?, string>> ArmOptions { get; } =
+    public IReadOnlyList<ArmOption> ArmOptions { get; } =
     [
-        new(null, "None (always)"),
-        new(MouseButton.Left, "Left"),
-        new(MouseButton.Right, "Right"),
-        new(MouseButton.Middle, "Middle"),
-        new(MouseButton.Side1, "Side 1"),
-        new(MouseButton.Side2, "Side 2"),
+        new() { Button = null, Label = "None (always)" },
+        new() { Button = MouseButton.Left, Label = "Left" },
+        new() { Button = MouseButton.Right, Label = "Right" },
+        new() { Button = MouseButton.Middle, Label = "Middle" },
+        new() { Button = MouseButton.Side1, Label = "Side 1" },
+        new() { Button = MouseButton.Side2, Label = "Side 2" },
     ];
     public IReadOnlyList<KeyOption> Keys { get; } =
     [
@@ -452,6 +460,15 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] int aimSatMin = 80;
     [ObservableProperty] int aimValMin = 60;
     [ObservableProperty] int aimCaptureRadius = 240;
+
+    /// <summary>Selected arm-trigger option (works with the ComboBox; "None" is a real item, not a null selection).</summary>
+    public ArmOption? AimTriggerOption
+    {
+        get => AimTrigger is null ? ArmOptions[0] : ArmOptions.FirstOrDefault(o => o.Button == AimTrigger);
+        set => AimTrigger = value?.Button;
+    }
+
+    partial void OnAimTriggerChanged(MouseButton? value) => OnPropertyChanged(nameof(AimTriggerOption));
 
     /// <summary>Builds the current aim-assist settings (clamped).</summary>
     public AimAssistSettings BuildAimSettings() => new()
