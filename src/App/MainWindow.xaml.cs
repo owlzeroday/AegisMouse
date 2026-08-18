@@ -1,6 +1,9 @@
-﻿using System.Windows;
+﻿using System.Collections.Specialized;
+using System.Linq;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Shapes;
 using AegisMouse.App.ViewModels;
 using AegisMouse.Database;
 using Serilog;
@@ -27,6 +30,11 @@ public partial class MainWindow : Window
         StateChanged += OnStateChanged;
         Closing += OnClosing;
         UpdateCalibBadge();
+
+        // Recoil visualizer: subscribe to collection + property changes
+        _vm.RecoilRows.CollectionChanged += OnRecoilRowsChanged;
+        Loaded += (_, _) => DrawRecoilPattern();
+        RecoilCanvas.SizeChanged += (_, _) => DrawRecoilPattern();
     }
 
     void UpdateCalibBadge()
@@ -35,6 +43,98 @@ public partial class MainWindow : Window
         CalibrateBtn.Content = _vm.Calibrating ? "Stop calibration" : "Calibrate";
         CalibrateBtn.Background = _vm.Calibrating ? FindResource("Danger") as System.Windows.Media.Brush : FindResource("Surface2") as System.Windows.Media.Brush;
     }
+
+    // ═══════════════════════════════════════════════════════════════
+    // DELETE CONFIRM POPOVER HANDLERS
+    // ═══════════════════════════════════════════════════════════════
+
+    void ConfirmDelete_Click(object sender, RoutedEventArgs e) => CloseAllDeletePopups();
+    void CancelDelete_Click(object sender, RoutedEventArgs e) => CloseAllDeletePopups();
+
+    void CloseAllDeletePopups()
+    {
+        DeleteProfileToggle.IsChecked = false;
+        DeleteBindingToggle.IsChecked = false;
+        DeleteMacroToggle.IsChecked = false;
+        DeleteRecoilToggle.IsChecked = false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // RECOIL PATTERN VISUALIZER
+    // ═══════════════════════════════════════════════════════════════
+
+    void OnRecoilRowsChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.NewItems != null)
+            foreach (RecoilRow r in e.NewItems)
+                r.PropertyChanged += (_, _) => DrawRecoilPattern();
+        DrawRecoilPattern();
+    }
+
+    void DrawRecoilPattern()
+    {
+        RecoilCanvas.Children.Clear();
+        var rows = _vm.RecoilRows;
+        RecoilVizEmpty.Visibility = rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        if (rows.Count == 0) return;
+
+        double w = RecoilCanvas.ActualWidth;
+        double h = RecoilCanvas.ActualHeight;
+        if (w < 10 || h < 10) return;
+
+        // Cumulative Dx/Dy positions
+        double cumX = 0, cumY = 0;
+        var points = new List<(double x, double y)> { (0, 0) };
+        foreach (var row in rows)
+        {
+            cumX += row.Dx;
+            cumY += row.Dy;
+            points.Add((cumX, cumY));
+        }
+
+        // Normalize to canvas with padding
+        double maxAbsX = Math.Max(1, points.Max(p => Math.Abs(p.x)));
+        double maxAbsY = Math.Max(1, points.Max(p => Math.Abs(p.y)));
+        double pad = 18;
+        double scale = Math.Min((w - 2 * pad) / (2 * maxAbsX), (h - 2 * pad) / maxAbsY) * 0.85;
+        double cx = w / 2;
+        double cy = h - pad;
+
+        // Axis lines (subtle)
+        var axisBrush = new SolidColorBrush(Color.FromRgb(0x1F, 0x26, 0x30));
+        RecoilCanvas.Children.Add(new Line { X1 = pad, Y1 = cy, X2 = w - pad, Y2 = cy, Stroke = axisBrush, StrokeThickness = 1 });
+        RecoilCanvas.Children.Add(new Line { X1 = cx, Y1 = pad, X2 = cx, Y2 = h - pad, Stroke = axisBrush, StrokeThickness = 1 });
+
+        // Recoil trajectory path
+        var accent = FindResource("Accent") as Brush;
+        var geo = new StreamGeometry();
+        using (var ctx = geo.Open())
+        {
+            ctx.BeginFigure(cx + points[0].x * scale, cy - points[0].y * scale, false, false);
+            foreach (var p in points.Skip(1))
+                ctx.LineTo(cx + p.x * scale, cy - p.y * scale);
+        }
+        RecoilCanvas.Children.Add(new System.Windows.Shapes.Path
+        {
+            Data = geo,
+            Stroke = accent,
+            StrokeThickness = 2,
+            StrokeDashArray = new DoubleCollection { 3, 2 },
+        });
+
+        // Shot points
+        for (int i = 0; i < points.Count; i++)
+        {
+            var dot = new Ellipse { Width = 5, Height = 5, Fill = accent };
+            Canvas.SetLeft(dot, cx + points[i].x * scale - 2.5);
+            Canvas.SetTop(dot, cy - points[i].y * scale - 2.5);
+            RecoilCanvas.Children.Add(dot);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // WINDOW / TRAY
+    // ═══════════════════════════════════════════════════════════════
 
     void OnStateChanged(object? sender, EventArgs e)
     {

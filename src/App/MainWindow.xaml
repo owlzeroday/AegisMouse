@@ -95,7 +95,21 @@
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <Button Grid.Column="0" Content="+ New" Margin="0,0,4,0" Command="{Binding AddProfileCommand}" />
-                        <Button Grid.Column="1" Content="Delete" Margin="4,0,0,0" Command="{Binding DeleteProfileCommand}" />
+                        <ToggleButton Grid.Column="1" x:Name="DeleteProfileToggle" Content="Delete" Margin="4,0,0,0" Style="{StaticResource DeleteToggleButton}" />
+                        <Popup IsOpen="{Binding IsChecked, ElementName=DeleteProfileToggle}" StaysOpen="False"
+                               Placement="Bottom" PlacementTarget="{Binding ElementName=DeleteProfileToggle}" AllowsTransparency="True">
+                            <Border Style="{StaticResource ConfirmPopup}">
+                                <StackPanel>
+                                    <TextBlock Text="Delete this profile?" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                    <TextBlock Text="This cannot be undone." FontSize="11" Foreground="{StaticResource Muted}" Margin="0,0,0,12" />
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Content="Delete" Style="{StaticResource DangerButton}" Margin="0,0,8,0"
+                                                Command="{Binding DeleteProfileCommand}" Click="ConfirmDelete_Click" />
+                                        <Button Content="Cancel" Click="CancelDelete_Click" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </Popup>
                     </Grid>
                     <TextBox Grid.Row="4" Margin="0,10,0,0" Text="{Binding SelectedProfile.Name, UpdateSourceTrigger=PropertyChanged}"
                              ToolTip="Rename the selected profile" />
@@ -104,14 +118,24 @@
 
             <!-- Main tabs -->
             <TabControl Grid.Column="1">
-                <TabItem Header="Assignments">
+                <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Path Width="14" Height="14" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=TabItem}}"
+                              StrokeThickness="1.5" Fill="Transparent" Margin="0,0,6,0"
+                              Data="M 7 1 L 7 5 M 7 9 L 7 13 M 1 7 L 5 7 M 9 7 L 13 7 M 7 4 A 3 3 0 1 0 7 10 A 3 3 0 1 0 7 4"
+                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                        <TextBlock Text="Assignments" />
+                    </StackPanel>
+                </TabItem.Header>
                     <Grid Margin="0,12,0,0">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="*" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
-                        <DataGrid x:Name="BindingsGrid" ItemsSource="{Binding Bindings}"
-                                  SelectedItem="{Binding SelectedBinding}">
+                        <Grid>
+                            <DataGrid x:Name="BindingsGrid" ItemsSource="{Binding Bindings}"
+                                      SelectedItem="{Binding SelectedBinding}">
                             <DataGrid.Columns>
                                 <DataGridTemplateColumn Header="Button" Width="110">
                                     <DataGridTemplateColumn.CellTemplate>
@@ -164,18 +188,56 @@
                                 </DataGridTemplateColumn>
                             </DataGrid.Columns>
                         </DataGrid>
+                        <!-- Empty state -->
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasItems, ElementName=BindingsGrid}" Value="False">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <TextBlock Text="No bindings yet" Style="{StaticResource EmptyStateTitle}" />
+                            <TextBlock Text="Click + Add binding to assign a mouse button" Style="{StaticResource EmptyStateHint}" />
+                        </StackPanel>
+                        </Grid>
                         <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,10,0,0">
                             <Button Content="+ Add binding" Command="{Binding AddBindingCommand}" Style="{StaticResource AccentButton}" />
-                            <Button Content="Remove" Margin="8,0,0,0"
-                                    Command="{Binding RemoveBindingCommand}"
-                                    CommandParameter="{Binding ElementName=BindingsGrid, Path=SelectedItem}" />
+                            <ToggleButton Content="Remove" Margin="8,0,0,0" x:Name="DeleteBindingToggle" Style="{StaticResource DeleteToggleButton}" />
+                            <Popup IsOpen="{Binding IsChecked, ElementName=DeleteBindingToggle}" StaysOpen="False"
+                                   Placement="Bottom" PlacementTarget="{Binding ElementName=DeleteBindingToggle}" AllowsTransparency="True">
+                                <Border Style="{StaticResource ConfirmPopup}">
+                                    <StackPanel>
+                                        <TextBlock Text="Delete this binding?" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                        <TextBlock Text="This cannot be undone." FontSize="11" Foreground="{StaticResource Muted}" Margin="0,0,0,12" />
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Content="Delete" Style="{StaticResource DangerButton}" Margin="0,0,8,0"
+                                                    Command="{Binding RemoveBindingCommand}"
+                                                    CommandParameter="{Binding ElementName=BindingsGrid, Path=SelectedItem}"
+                                                    Click="ConfirmDelete_Click" />
+                                            <Button Content="Cancel" Click="CancelDelete_Click" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </Popup>
                             <TextBlock Text="Recoil comp arms only while the armed button is held. Key remap swallows the original button." 
                                        Foreground="{StaticResource Muted}" FontSize="11" VerticalAlignment="Center" Margin="14,0,0,0" />
                         </StackPanel>
                     </Grid>
                 </TabItem>
 
-                <TabItem Header="Macros">
+                <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Path Width="14" Height="14" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=TabItem}}"
+                              StrokeThickness="1.5" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=TabItem}}"
+                              Margin="0,0,6,0" Data="M 3 3 L 3 11 L 11 7 Z" />
+                        <TextBlock Text="Macros" />
+                    </StackPanel>
+                </TabItem.Header>
                     <Grid Margin="0,12,0,0">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -255,19 +317,59 @@
                                 </DataGridTemplateColumn>
                             </DataGrid.Columns>
                         </DataGrid>
+                        <!-- Empty state -->
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasItems, ElementName=RecoilGrid}" Value="False">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <TextBlock Text="No recoil steps" Style="{StaticResource EmptyStateTitle}" />
+                            <TextBlock Text="Click + Add row or apply a preset to begin" Style="{StaticResource EmptyStateHint}" />
+                        </StackPanel>
+                        </Grid>
                         <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,10,0,0">
                             <Button Content="+ Add action" Command="{Binding AddActionCommand}" Style="{StaticResource AccentButton}" />
-                            <Button Content="Remove" Margin="8,0,0,0"
-                                    Command="{Binding RemoveActionCommand}"
-                                    CommandParameter="{Binding ElementName=MacrosGrid, Path=SelectedItem}" />
+                            <ToggleButton Content="Remove" Margin="8,0,0,0" x:Name="DeleteMacroToggle" Style="{StaticResource DeleteToggleButton}" />
+                            <Popup IsOpen="{Binding IsChecked, ElementName=DeleteMacroToggle}" StaysOpen="False"
+                                   Placement="Bottom" PlacementTarget="{Binding ElementName=DeleteMacroToggle}" AllowsTransparency="True">
+                                <Border Style="{StaticResource ConfirmPopup}">
+                                    <StackPanel>
+                                        <TextBlock Text="Delete this action?" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                        <TextBlock Text="This cannot be undone." FontSize="11" Foreground="{StaticResource Muted}" Margin="0,0,0,12" />
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Content="Delete" Style="{StaticResource DangerButton}" Margin="0,0,8,0"
+                                                    Command="{Binding RemoveActionCommand}"
+                                                    CommandParameter="{Binding ElementName=MacrosGrid, Path=SelectedItem}"
+                                                    Click="ConfirmDelete_Click" />
+                                            <Button Content="Cancel" Click="CancelDelete_Click" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </Popup>
                         </StackPanel>
                     </Grid>
                 </TabItem>
 
-                <TabItem Header="Recoil">
+                <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Path Width="14" Height="14" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=TabItem}}"
+                              StrokeThickness="1.5" Fill="Transparent" Margin="0,0,6,0"
+                              Data="M 7 2 L 7 11 M 4 8 L 7 12 L 10 8"
+                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+                        <TextBlock Text="Recoil" />
+                    </StackPanel>
+                </TabItem.Header>
                     <Grid Margin="0,12,0,0">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="90" />
                             <RowDefinition Height="*" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
@@ -286,7 +388,19 @@
                             <TextBlock Text="Dpi:" VerticalAlignment="Center" Margin="18,0,8,0" />
                             <TextBox Width="80" Text="{Binding Dpi, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                         </WrapPanel>
-                        <DataGrid x:Name="RecoilGrid" Grid.Row="1" ItemsSource="{Binding RecoilRows}">
+                        <!-- Recoil pattern visualizer -->
+                        <Border Grid.Row="1" Background="#FF0D1016" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="6" Margin="0,0,0,10" ClipToBounds="True">
+                            <Grid>
+                                <Canvas x:Name="RecoilCanvas" ClipToBounds="True" />
+                                <TextBlock Text="RECOIL PATTERN" Foreground="{StaticResource Muted}" FontSize="9"
+                                           FontWeight="SemiBold" FontFamily="Cascadia Mono"
+                                           HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8,6,0,0" Opacity="0.6" />
+                                <TextBlock x:Name="RecoilVizEmpty" Text="No data — add rows to see the pattern"
+                                           Foreground="#FF6B7585" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Grid>
+                        </Border>
+                        <Grid Grid.Row="2">
+                            <DataGrid x:Name="RecoilGrid" ItemsSource="{Binding RecoilRows}">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Shot" Binding="{Binding Shot}" Width="70" IsReadOnly="True" />
                                 <DataGridTextColumn Header="Dx" Binding="{Binding Dx, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="80" />
@@ -294,18 +408,56 @@
                                 <DataGridTextColumn Header="Delay ms" Binding="{Binding DelayMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="90" />
                             </DataGrid.Columns>
                         </DataGrid>
-                        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,10,0,0">
+                        <!-- Empty state -->
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasItems, ElementName=RecoilGrid}" Value="False">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <TextBlock Text="No recoil steps" Style="{StaticResource EmptyStateTitle}" />
+                            <TextBlock Text="Click + Add row or apply a preset to begin" Style="{StaticResource EmptyStateHint}" />
+                        </StackPanel>
+                        </Grid>
+                        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,10,0,0">
                             <Button Content="+ Add row" Command="{Binding AddRowCommand}" Style="{StaticResource AccentButton}" />
-                            <Button Content="Remove" Margin="8,0,0,0"
-                                    Command="{Binding RemoveRowCommand}"
-                                    CommandParameter="{Binding ElementName=RecoilGrid, Path=SelectedItem}" />
+                            <ToggleButton Content="Remove" Margin="8,0,0,0" x:Name="DeleteRecoilToggle" Style="{StaticResource DeleteToggleButton}" />
+                            <Popup IsOpen="{Binding IsChecked, ElementName=DeleteRecoilToggle}" StaysOpen="False"
+                                   Placement="Bottom" PlacementTarget="{Binding ElementName=DeleteRecoilToggle}" AllowsTransparency="True">
+                                <Border Style="{StaticResource ConfirmPopup}">
+                                    <StackPanel>
+                                        <TextBlock Text="Delete this step?" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                        <TextBlock Text="This cannot be undone." FontSize="11" Foreground="{StaticResource Muted}" Margin="0,0,0,12" />
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Content="Delete" Style="{StaticResource DangerButton}" Margin="0,0,8,0"
+                                                    Command="{Binding RemoveRowCommand}"
+                                                    CommandParameter="{Binding ElementName=RecoilGrid, Path=SelectedItem}"
+                                                    Click="ConfirmDelete_Click" />
+                                            <Button Content="Cancel" Click="CancelDelete_Click" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </Popup>
                             <TextBlock Text="Rows apply in order per shot while the trigger is held; steps push the crosshair down Dy px (strength-scaled) to counter game recoil."
                                        Foreground="{StaticResource Muted}" FontSize="11" VerticalAlignment="Center" Margin="14,0,0,0" />
                         </StackPanel>
                     </Grid>
                 </TabItem>
 
-                <TabItem Header="Settings">
+                <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Path Width="14" Height="14" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=TabItem}}"
+                              StrokeThickness="1.5" Fill="Transparent" Margin="0,0,6,0"
+                              Data="M 7 3 A 4 4 0 1 0 7 11 A 4 4 0 1 0 7 3 M 7 5.5 A 1.5 1.5 0 1 0 7 8.5 A 1.5 1.5 0 1 0 7 5.5" />
+                        <TextBlock Text="Settings" />
+                    </StackPanel>
+                </TabItem.Header>
                     <StackPanel Margin="0,12,0,0">
                         <Border Style="{StaticResource Card}">
                             <StackPanel>

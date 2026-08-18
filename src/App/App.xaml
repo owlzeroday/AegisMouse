@@ -185,8 +185,8 @@
                                 <Setter TargetName="bd" Property="BorderThickness" Value="1" />
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="{StaticResource AccentTint}" />
-                                <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource Accent}" />
+                                <Setter TargetName="bd" Property="Background" Value="#FF1A2130" />
+                                <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource BorderHover}" />
                                 <Setter TargetName="bd" Property="BorderThickness" Value="1" />
                                 <Setter Property="Foreground" Value="{StaticResource Text}" />
                             </Trigger>
@@ -448,7 +448,7 @@
                     <Setter Property="Background" Value="#FF141A24" />
                 </Trigger>
                 <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="{StaticResource AccentTint}" />
+                    <Setter Property="Background" Value="#FF1A2130" />
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -673,8 +673,8 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="{StaticResource AccentTint}" />
-                                <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource Accent}" />
+                                <Setter TargetName="bd" Property="Background" Value="#FF1A2130" />
+                                <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource BorderHover}" />
                                 <Setter Property="Foreground" Value="{StaticResource Text}" />
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
@@ -686,5 +686,83 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             TOGGLE BUTTON (styled as Button for delete confirm triggers)
+             ═══════════════════════════════════════════════════════════ -->
+        <Style x:Key="DeleteToggleButton" TargetType="ToggleButton">
+            <Setter Property="Background" Value="{StaticResource Surface2}" />
+            <Setter Property="Foreground" Value="{StaticResource Text}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Border}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="14,7" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              TextBlock.Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource Danger}" />
+                                <Setter TargetName="bd" Property="Background" Value="{StaticResource Hover}" />
+                                <Setter Property="Foreground" Value="{StaticResource Danger}" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource Danger}" />
+                                <Setter Property="Foreground" Value="{StaticResource Danger}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Confirm popup panel -->
+        <Style x:Key="ConfirmPopup" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource Popup}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Danger}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="14" />
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="20" ShadowDepth="6" Opacity="0.7" Color="#FF000000" />
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Danger button (for confirm-delete) -->
+        <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="{StaticResource Danger}" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="BorderBrush" Value="{StaticResource Danger}" />
+        </Style>
+
+        <!-- Empty state text -->
+        <Style x:Key="EmptyStateTitle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource Muted}" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+        </Style>
+
+        <Style x:Key="EmptyStateHint" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#FF6B7585" />
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+        </Style>
+
     </Application.Resources>
 </Application>
