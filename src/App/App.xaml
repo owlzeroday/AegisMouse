@@ -665,16 +665,26 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ListBoxItem">
-                        <Border x:Name="bd" Background="Transparent" CornerRadius="7"
-                                Padding="{TemplateBinding Padding}" Margin="2"
-                                BorderBrush="Transparent" BorderThickness="1"
-                                SnapsToDevicePixels="True">
-                            <ContentPresenter TextBlock.Foreground="{TemplateBinding Foreground}" />
-                        </Border>
+                        <Grid Margin="2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="3" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <!-- Left accent indicator -->
+                            <Border x:Name="indicator" Grid.Column="0" Width="3" CornerRadius="2"
+                                    Background="Transparent" Margin="0,1" VerticalAlignment="Stretch" />
+                            <Border x:Name="bd" Grid.Column="1" Background="Transparent" CornerRadius="6"
+                                    Padding="{TemplateBinding Padding}"
+                                    BorderBrush="Transparent" BorderThickness="1"
+                                    SnapsToDevicePixels="True">
+                                <ContentPresenter TextBlock.Foreground="{TemplateBinding Foreground}" />
+                            </Border>
+                        </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter TargetName="bd" Property="Background" Value="#FF1A2130" />
                                 <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource BorderHover}" />
+                                <Setter TargetName="indicator" Property="Background" Value="{StaticResource Accent}" />
                                 <Setter Property="Foreground" Value="{StaticResource Text}" />
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
