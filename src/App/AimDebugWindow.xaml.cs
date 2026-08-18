@@ -38,6 +38,16 @@ public partial class AimDebugWindow : Window
         double dpi = VisualTreeHelper.GetDpi(this).DpiScaleX;
         Left = wa.Right / dpi - Width - 16;
         Top = wa.Bottom / dpi - Height - 16;
+
+        // F9 / Ctrl+S saves the current frame without moving the mouse off the target
+        PreviewKeyDown += (_, e) =>
+        {
+            if (e.Key == Key.F9 || (e.Key == Key.S && Keyboard.Modifiers.HasFlag(ModifierKeys.Control)))
+            {
+                SaveFrameNow();
+                e.Handled = true;
+            }
+        };
     }
 
     void OnFrame(AimFrame f)
@@ -120,7 +130,9 @@ public partial class AimDebugWindow : Window
         PickedInfo.Text = $"R{r} G{g} B{b}  →  H{h} S{s} V{v}";
     }
 
-    void SaveFrame_Click(object sender, RoutedEventArgs e)
+    void SaveFrame_Click(object sender, RoutedEventArgs e) => SaveFrameNow();
+
+    void SaveFrameNow()
     {
         try
         {

@@ -2,9 +2,13 @@
 
 Universal mouse macro engine — works with any brand of mouse. Input is synthesized at the OS level (SendInput + low-level hooks), so no vendor driver is required.
 
-**Current version: 1.3.1**
+**Current version: 1.3.2**
 
 ## Changelog
+
+### 1.3.2 — Aim debug save fixes
+- Save button was clipped at compact window size — side panel is now scrollable, button always reachable
+- F9 (or Ctrl+S) saves the current frame + HSV settings without moving the mouse off the target — no more lost frames from closing the window
 
 ### 1.3.1 — Aim debug usability
 - Opening the vision debug window now minimizes AegisMouse to the tray so the game screen is fully visible; closing it restores the app
