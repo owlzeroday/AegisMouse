@@ -213,7 +213,7 @@
                                             <ComboBox ItemsSource="{x:Static vm:BindingItem.AllButtons}"
                                                       SelectedItem="{Binding Button, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                         </DataTemplate>
-                                    </DataTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
                                 <DataGridTemplateColumn Header="Key" Width="100">
                                     <DataGridTemplateColumn.CellTemplate>
@@ -222,7 +222,7 @@
                                                       SelectedValuePath="Vk" DisplayMemberPath="Name"
                                                       SelectedValue="{Binding Vk, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                         </DataTemplate>
-                                    </DataTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
                                 <DataGridTemplateColumn Header="Dx" Width="60">
                                     <DataGridTemplateColumn.CellTemplate>
