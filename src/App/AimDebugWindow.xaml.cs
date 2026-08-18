@@ -39,12 +39,20 @@ public partial class AimDebugWindow : Window
         Left = wa.Right / dpi - Width - 16;
         Top = wa.Bottom / dpi - Height - 16;
 
-        // F9 / Ctrl+S saves the current frame without moving the mouse off the target
+        // Freeze the capture region so the preview stays steady while the mouse moves
+        aim.SetDebugCenter(System.Windows.Forms.Cursor.Position.X, System.Windows.Forms.Cursor.Position.Y);
+
+        // F3 (or Ctrl+S) saves the current frame without moving the mouse off the target; R re-centers
         PreviewKeyDown += (_, e) =>
         {
-            if (e.Key == Key.F9 || (e.Key == Key.S && Keyboard.Modifiers.HasFlag(ModifierKeys.Control)))
+            if (e.Key == Key.F3 || (e.Key == Key.S && Keyboard.Modifiers.HasFlag(ModifierKeys.Control)))
             {
                 SaveFrameNow();
+                e.Handled = true;
+            }
+            else if (e.Key == Key.R)
+            {
+                _aim.RecenterNow();
                 e.Handled = true;
             }
         };
@@ -109,6 +117,12 @@ public partial class AimDebugWindow : Window
             Overlay.Children.Add(aim);
         }
 
+        // Live cursor marker (moves with the mouse; the frame itself stays steady)
+        var cur = new System.Windows.Shapes.Rectangle { Width = 7, Height = 7, Stroke = System.Windows.Media.Brushes.Cyan, StrokeThickness = 1.5 };
+        Canvas.SetLeft(cur, f.CursorX * sx - 3.5);
+        Canvas.SetTop(cur, f.CursorY * sy - 3.5);
+        Overlay.Children.Add(cur);
+
         Stats.Text =
             $"capture: {f.CaptureMs} ms · detect: {f.DetectMs} ms\n" +
             $"targets: {f.Targets.Count} · selected: {(f.Selected is null ? "—" : $"{f.Selected.CenterX},{f.Selected.CenterY}")} · dist: {f.DistancePx:0}\n" +
@@ -131,6 +145,8 @@ public partial class AimDebugWindow : Window
     }
 
     void SaveFrame_Click(object sender, RoutedEventArgs e) => SaveFrameNow();
+
+    void Recenter_Click(object sender, RoutedEventArgs e) => _aim.RecenterNow();
 
     void SaveFrameNow()
     {

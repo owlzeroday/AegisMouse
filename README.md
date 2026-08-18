@@ -2,9 +2,13 @@
 
 Universal mouse macro engine — works with any brand of mouse. Input is synthesized at the OS level (SendInput + low-level hooks), so no vendor driver is required.
 
-**Current version: 1.3.2**
+**Current version: 1.3.3**
 
 ## Changelog
+
+### 1.3.3 — Steady debug frame + hotkey fixes
+- Debug preview is now frozen at the position where you opened it — moving the mouse no longer shifts the frame (cyan box shows your live cursor instead)
+- R re-centers the capture region on your cursor; F3 (was F9, conflicts with in-game training binds) saves the frame, Ctrl+S still works
 
 ### 1.3.2 — Aim debug save fixes
 - Save button was clipped at compact window size — side panel is now scrollable, button always reachable

@@ -19,6 +19,9 @@ public sealed class AimFrame
     /// <summary>Crosshair center in capture-space (the capture region's center pixel).</summary>
     public int CenterX { get; init; }
     public int CenterY { get; init; }
+    /// <summary>Current cursor position in capture-space (the moving marker in the debug preview).</summary>
+    public int CursorX { get; init; }
+    public int CursorY { get; init; }
     public int ScreenLeft { get; init; }
     public int ScreenTop { get; init; }
     public int FovRadiusPx { get; init; }
@@ -41,6 +44,8 @@ public sealed class AimAssistService : IDisposable
     volatile bool _running;
     volatile bool _armed;
     volatile bool _debug;
+    volatile bool _fixedCenter;
+    volatile int _fixX, _fixY;
     AimAssistSettings? _settings;
     HumanizeSettings? _humanize;
     readonly Humanizer _humanizer = new();
@@ -49,7 +54,7 @@ public sealed class AimAssistService : IDisposable
     /// <summary>Debug/vision frames (raised on the capture thread; only while the debug window is open).</summary>
     public event Action<AimFrame>? DebugFrame;
 
-    public bool DebugActive { get => _debug; set { _debug = value; } }
+    public bool DebugActive { get => _debug; set { _debug = value; if (!value) _fixedCenter = false; } }
 
     public void Start(AimAssistSettings settings, HumanizeSettings humanize)
     {
@@ -68,6 +73,12 @@ public sealed class AimAssistService : IDisposable
     /// <summary>True while the trigger key/button is held (or debug vision is open).</summary>
     public void SetArmed(bool armed) => _armed = armed;
 
+    /// <summary>Freeze the capture region at a fixed screen point (used by the debug window).</summary>
+    public void SetDebugCenter(int x, int y) { _fixX = x; _fixY = y; _fixedCenter = true; }
+
+    /// <summary>Re-freeze the capture region at the current cursor position.</summary>
+    public void RecenterNow() { var c = Cursor.Position; _fixX = c.X; _fixY = c.Y; }
+
     void Loop()
     {
         while (_running)
@@ -80,7 +91,11 @@ public sealed class AimAssistService : IDisposable
             int size = Math.Clamp(s.CaptureRadiusPx, 48, 900) * 2;
             var cursor = Cursor.Position;
 
-            var cap = Capture(cursor.X - size / 2, cursor.Y - size / 2, size, size);
+            // Capture region: fixed while the debug window is open (steady preview), cursor-following otherwise
+            int capLeft = _fixedCenter ? _fixX - size / 2 : cursor.X - size / 2;
+            int capTop = _fixedCenter ? _fixY - size / 2 : cursor.Y - size / 2;
+
+            var cap = Capture(capLeft, capTop, size, size);
             if (cap is null) { Thread.Sleep(33); continue; }
 
             var sw = Stopwatch.StartNew();
@@ -88,15 +103,16 @@ public sealed class AimAssistService : IDisposable
             int detectMs = (int)sw.ElapsedMilliseconds;
 
             int cx = cap.Width / 2, cy = cap.Height / 2;
+            int curX = cursor.X - cap.Left, curY = cursor.Y - cap.Top;   // current cursor in capture-space
             var sel = _armed && s.Enabled
-                ? AimVision.SelectTarget(targets, cx, cy, s.FovRadiusPx)
+                ? AimVision.SelectTarget(targets, curX, curY, s.FovRadiusPx)
                 : null;
-            double dist = sel is null ? 0 : Math.Sqrt(Math.Pow(sel.CenterX - cx, 2) + Math.Pow(sel.CenterY - cy, 2));
+            double dist = sel is null ? 0 : Math.Sqrt(Math.Pow(sel.CenterX - curX, 2) + Math.Pow(sel.CenterY - curY, 2));
 
             if (sel is not null)
             {
                 int aimY = sel.AimY(Math.Clamp(s.AimOffsetPct, 0, 100));
-                int dx = sel.CenterX - cx, dy = aimY - cy;
+                int dx = sel.CenterX - curX, dy = aimY - curY;
                 double d = Math.Sqrt(dx * dx + dy * dy);
                 if (d > s.DeadzonePx)
                 {
@@ -120,6 +136,8 @@ public sealed class AimAssistService : IDisposable
                     DetectMs = detectMs,
                     CenterX = cx,
                     CenterY = cy,
+                    CursorX = curX,
+                    CursorY = curY,
                     ScreenLeft = cap.Left,
                     ScreenTop = cap.Top,
                     FovRadiusPx = s.FovRadiusPx,
