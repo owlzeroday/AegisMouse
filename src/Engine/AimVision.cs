@@ -32,9 +32,15 @@ public static class AimVision
         if (bgra.Length < width * height * 4 || width < 2 || height < 2) return blobs;
 
         // Two-pass scanline connected components with run-length encoding.
+        // NOTE: union-find state lives in a dedicated label->parent map, NOT in the
+        // per-run list. The old scheme stored parents in run entries (labels[lab-1]),
+        // but multiple runs can share one label, so FindRoot could cycle 1->2->1 and
+        // hang forever on adversarial/real screen content. This map is indexed by
+        // label id, so cycles are impossible.
         var label = new int[width];
         Array.Clear(label);
-        var labels = new List<(int x0, int x1, int y, int parent)>();
+        var labels = new List<(int x0, int x1, int y, int lab)>();
+        var parent = new Dictionary<int, int>();
         int nextLabel = 0;
 
         for (int y = 0; y < height; y++)
@@ -59,10 +65,10 @@ public static class AimVision
                     if (p != 0)
                     {
                         if (lab == 0) lab = p;
-                        else if (lab != p) Union(labels, lab, p);
+                        else if (lab != p) Union(parent, lab, p);
                     }
                 }
-                if (lab == 0) lab = ++nextLabel;
+                if (lab == 0) { lab = ++nextLabel; parent[lab] = lab; }
                 for (int i = x0; i <= x1; i++) cur[i] = lab;
                 labels.Add((x0, x1, y, lab));
             }
@@ -71,13 +77,12 @@ public static class AimVision
         }
 
         // Collect bboxes per root label, skipping tiny noise blobs.
-        var roots = new Dictionary<int, int>();   // label -> root
         var boxes = new Dictionary<int, (int l, int t, int r, int b, int count)>();
 
         for (int i = 0; i < labels.Count; i++)
         {
             var (x0, x1, y, lab) = labels[i];
-            int root = FindRoot(labels, lab);
+            int root = FindRoot(parent, lab);
             if (!boxes.TryGetValue(root, out var b))
                 b = (x0, y, x1, y, 0);
             b = (Math.Min(b.l, x0), Math.Min(b.t, y), Math.Max(b.r, x1), Math.Max(b.b, y), b.count + (x1 - x0 + 1));
@@ -139,20 +144,29 @@ public static class AimVision
         return true;
     }
 
-    // ── union-find over run labels ────────────────────────────────
-    static void Union(List<(int x0, int x1, int y, int parent)> labels, int a, int b)
+    // ── union-find over label ids (path compression; iterative, cycle-free) ──
+    static void Union(Dictionary<int, int> parent, int a, int b)
     {
-        int ra = FindRoot(labels, a), rb = FindRoot(labels, b);
+        int ra = FindRoot(parent, a), rb = FindRoot(parent, b);
         if (ra == rb) return;
-        // reparent: rewrite the smaller set — keep it simple, path compress on demand
-        var la = labels[ra - 1];
-        labels[ra - 1] = (la.x0, la.x1, la.y, rb);
+        parent[ra] = rb;
     }
 
-    static int FindRoot(List<(int x0, int x1, int y, int parent)> labels, int lab)
+    static int FindRoot(Dictionary<int, int> parent, int lab)
     {
-        while (labels[lab - 1].parent != lab)
-            lab = labels[lab - 1].parent;
-        return lab;
+        // Path compression with a visited chain (bounded by label count).
+        int root = lab;
+        int guard = 0;
+        while (parent.TryGetValue(root, out int p) && p != root && guard++ < parent.Count + 16)
+            root = p;
+        // Compress the original chain toward the root.
+        int cur = lab;
+        guard = 0;
+        while (parent.TryGetValue(cur, out int pc) && pc != root && guard++ < parent.Count + 16)
+        {
+            parent[cur] = root;
+            cur = pc;
+        }
+        return root;
     }
 }

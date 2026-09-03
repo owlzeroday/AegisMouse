@@ -46,7 +46,12 @@ public sealed class MacroDatabase : IDisposable
             var rows = _conn.Query<(string name, string body)>("SELECT name, body FROM profiles ORDER BY name").ToList();
             return rows.Select(r =>
             {
-                try { return JsonSerializer.Deserialize<GameProfile>(r.body, Json)!; }
+                try
+                {
+                    var p = JsonSerializer.Deserialize<GameProfile>(r.body, Json)!;
+                    if (p is not null) ProfileSanitizer.Sanitize(p);
+                    return p;
+                }
                 catch (Exception ex) { Log.Warning(ex, "Bad profile {Name}", r.name); return null; }
             }).Where(p => p is not null).Cast<GameProfile>().ToList();
         }
@@ -54,6 +59,7 @@ public sealed class MacroDatabase : IDisposable
 
     public void SaveProfile(GameProfile p)
     {
+        ProfileSanitizer.Sanitize(p);
         lock (_sync)
         {
             _conn.Execute("""

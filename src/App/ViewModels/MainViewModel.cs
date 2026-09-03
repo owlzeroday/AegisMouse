@@ -75,7 +75,7 @@ public sealed partial class MacroActionItem : ObservableObject
 
     public MacroAction Build() => new()
     {
-        Kind = Kind, Button = Button, Vk = Vk,
+        Kind = Kind, Button = Button, Vk = Math.Clamp(Vk, 0, 255),
         Dx = Math.Clamp(Dx, -2000, 2000), Dy = Math.Clamp(Dy, -2000, 2000),
         DelayMs = Math.Clamp(DelayMs, 0, 60000), HoldMs = Math.Clamp(HoldMs, 0, 60000),
         Repeat = Math.Clamp(Repeat, 1, 1000), RepeatIntervalMs = Math.Clamp(RepeatIntervalMs, 0, 60000)

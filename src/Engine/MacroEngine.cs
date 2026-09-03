@@ -145,7 +145,10 @@ public sealed class MacroEngine : IDisposable
         var button = down ? MouseButton.WheelDown : MouseButton.WheelUp;
         var binding = _profile.Bindings.FirstOrDefault(x => x.Trigger == button);
         if (binding is null || binding.Mode == BindingMode.Default) return;
-        for (int i = 0; i < ticks; i++)
+        // Cap: real wheels deliver 1-3 ticks/notch; virtual-wheel spam (or a
+        // malicious app synthesizing wheel input) must not spawn unbounded threads.
+        int n = Math.Clamp(ticks, 1, 8);
+        for (int i = 0; i < n; i++)
             StartLoop(button, "WheelSingleShot", () => WheelAction(binding, down));
         InputEvent?.Invoke($"{button} ×{ticks} → {binding.Mode}");
     }

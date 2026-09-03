@@ -169,6 +169,94 @@ public sealed class AimAssistSettings
     public int CaptureRadiusPx { get; set; } = 240;
 }
 
+/// <summary>
+/// Defense-in-depth: clamp every persisted value on LOAD, not just on UI save.
+/// The SQLite DB lives in %ProgramData% and can be edited by same-user malware,
+/// hand-edited, or carried over from an older version — the engine must never
+/// trust it blindly (huge Repeat = input flood, huge Dx = wild mouse jumps,
+/// arbitrary Vk = unexpected keys). Limits mirror the UI Build() clamps so
+/// legitimate profiles are never altered.
+/// </summary>
+public static class ProfileSanitizer
+{
+    public const int MaxBindings = 32;
+    public const int MaxActionsPerBinding = 512;
+    public const int MaxRecoilSteps = 200;
+
+    public static void Sanitize(GameProfile p)
+    {
+        if (p is null) return;
+        p.Name = string.IsNullOrWhiteSpace(p.Name) ? "Profile" : p.Name.Trim().Length > 128 ? p.Name.Trim()[..128] : p.Name.Trim();
+        p.Dpi = Math.Clamp(p.Dpi, 100, 16000);
+        p.RecoilStrength = double.IsFinite(p.RecoilStrength) ? Math.Clamp(p.RecoilStrength, 0.05, 5.0) : 1.0;
+        p.Humanize ??= new HumanizeSettings();
+        Sanitize(p.Humanize);
+        p.Bindings ??= [];
+        if (p.Bindings.Count > MaxBindings) p.Bindings = p.Bindings.Take(MaxBindings).ToList();
+        foreach (var b in p.Bindings) Sanitize(b);
+        p.RecoilTable ??= [];
+        if (p.RecoilTable.Count > MaxRecoilSteps) p.RecoilTable = p.RecoilTable.Take(MaxRecoilSteps).ToList();
+        foreach (var s in p.RecoilTable) Sanitize(s);
+        for (int i = 0; i < p.RecoilTable.Count; i++) p.RecoilTable[i].Shot = i + 1;
+        if (p.AimAssist is not null) Sanitize(p.AimAssist);
+    }
+
+    public static void Sanitize(ButtonBinding b)
+    {
+        b.FireRateRpm = Math.Clamp(b.FireRateRpm, 60, 60000);
+        b.BurstCount = Math.Clamp(b.BurstCount, 1, 100);
+        b.RemapVk = b.RemapVk is > 0 and <= 255 ? b.RemapVk : 0;
+        b.Actions ??= [];
+        if (b.Actions.Count > MaxActionsPerBinding) b.Actions = b.Actions.Take(MaxActionsPerBinding).ToList();
+        foreach (var a in b.Actions) Sanitize(a);
+    }
+
+    public static void Sanitize(MacroAction a)
+    {
+        // VK codes are one byte (0..255); larger ints would be silently truncated
+        // by the (ushort) cast in NativeInput and synthesize the wrong key.
+        a.Vk = Math.Clamp(a.Vk, 0, 255);
+        a.Dx = Math.Clamp(a.Dx, -2000, 2000);
+        a.Dy = Math.Clamp(a.Dy, -2000, 2000);
+        a.DelayMs = Math.Clamp(a.DelayMs, 0, 60000);
+        a.HoldMs = Math.Clamp(a.HoldMs, 0, 60000);
+        a.Repeat = Math.Clamp(a.Repeat, 1, 1000);
+        a.RepeatIntervalMs = Math.Clamp(a.RepeatIntervalMs, 0, 60000);
+    }
+
+    public static void Sanitize(RecoilStep s)
+    {
+        s.Dx = Math.Clamp(s.Dx, -2000, 2000);
+        s.Dy = Math.Clamp(s.Dy, -2000, 2000);
+        s.DelayMs = Math.Clamp(s.DelayMs, 1, 60000);
+    }
+
+    public static void Sanitize(HumanizeSettings h)
+    {
+        h.DelayJitterMs = Math.Clamp(h.DelayJitterMs, 0, 1000);
+        h.HoldJitterMs = Math.Clamp(h.HoldJitterMs, 0, 1000);
+        h.MoveJitterCounts = Math.Clamp(h.MoveJitterCounts, 0, 100);
+        h.StepSkipPercent = Math.Clamp(h.StepSkipPercent, 0, 100);
+    }
+
+    public static void Sanitize(AimAssistSettings s)
+    {
+        s.TriggerVk = Math.Clamp(s.TriggerVk, 0, 255);
+        s.FovRadiusPx = Math.Clamp(s.FovRadiusPx, 8, 900);
+        s.PullStrength = double.IsFinite(s.PullStrength) ? Math.Clamp(s.PullStrength, 0.05, 0.99) : 0.75;
+        s.MaxTurnPxPerFrame = Math.Clamp(s.MaxTurnPxPerFrame, 1, 60);
+        s.DeadzonePx = Math.Clamp(s.DeadzonePx, 0, 200);
+        s.AimOffsetPct = Math.Clamp(s.AimOffsetPct, 0, 100);
+        s.MinTargetSizePx = Math.Clamp(s.MinTargetSizePx, 1, 400);
+        if (s.HueMin > s.HueMax) (s.HueMin, s.HueMax) = (s.HueMax, s.HueMin);
+        s.HueMin = Math.Clamp(s.HueMin, 0, 179);
+        s.HueMax = Math.Clamp(s.HueMax, 0, 179);
+        s.SatMin = Math.Clamp(s.SatMin, 0, 255);
+        s.ValMin = Math.Clamp(s.ValMin, 0, 255);
+        s.CaptureRadiusPx = Math.Clamp(s.CaptureRadiusPx, 48, 900);
+    }
+}
+
 public static class Presets
 {
     /// <summary>Common FPS recoil archetypes (per-shot pull-down in counts at 800 DPI mid sens).</summary>
