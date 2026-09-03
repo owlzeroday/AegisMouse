@@ -2,9 +2,15 @@
 
 Universal mouse macro engine — works with any brand of mouse. Input is synthesized at the OS level (SendInput + low-level hooks), so no vendor driver is required.
 
-**Current version: 1.3.4**
+**Current version: 1.3.5**
 
 ## Changelog
+
+### 1.3.5 — Security hardening
+- Fixed aim-vision hang — union-find state moved to a dedicated label→parent map (the old per-run parent scheme could cycle forever on real screen content)
+- Untrusted DB values are now sanitized on load, not just on UI save (Repeat/Dx/Vk/strength clamps + collection caps — same-user DB tampering can no longer cause input floods or wild mouse jumps)
+- Macro key codes clamped to 0..255 (larger ints were silently truncated to the wrong key)
+- Wheel-tick dispatches capped at 8 per event (synthetic wheel spam can no longer spawn unbounded threads)
 
 ### 1.3.4 — Aim trigger dropdown fix
 - "Hold-to-aim mouse button" ComboBox was unclickable (WPF bug: null-key item in `SelectedValue`/`KeyValuePair` binding) — rewired to a wrapper class + `SelectedItem` binding; Left/Right/Middle/Side1/Side2 now selectable
