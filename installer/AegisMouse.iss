@@ -41,7 +41,10 @@ Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExeName}"; IconFilename: "{app
 Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExeName}"; IconFilename: "{app}\{#AppExeName}"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\{#AppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(AppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+; shellexec = launch via ShellExecute so Windows shows the UAC prompt.
+; Without it Inno uses CreateProcess, which cannot elevate and fails with
+; code 740 (ERROR_ELEVATION_REQUIRED) because the app manifest requires admin.
+Filename: "{app}\{#AppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(AppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent shellexec
 
 [Code]
 function InitializeSetup(): Boolean;
