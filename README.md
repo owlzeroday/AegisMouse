@@ -2,9 +2,16 @@
 
 Universal mouse macro engine — works with any brand of mouse. Input is synthesized at the OS level (SendInput + low-level hooks), so no vendor driver is required.
 
-**Current version: 1.3.5**
+**Current version: 1.3.6**
 
 ## Changelog
+
+### 1.3.6 — Aim assist tracking overhaul (Knives Out)
+- Fixed false locks on grass/objects — new validation gates: max target size (scenery), humanoid aspect ratio (0.8–5.0 h/w), blob density (≥25% fill rejects sparse speckles)
+- Fixed wild aim rotation — new sticky `TargetLock`: 3-frame debounce before pull starts, lock follows the same blob, challengers steal it only with a 30 px margin (no more 60 Hz A/B flicker)
+- Smoothed output — EMA filter on pull deltas, lock and smoothing reset on trigger release
+- Status-bar version now reads the shipped assembly version (was hardcoded v1.0.1)
+- 9 new tests (42 passing)
 
 ### 1.3.5 — Security hardening
 - Fixed aim-vision hang — union-find state moved to a dedicated label→parent map (the old per-run parent scheme could cycle forever on real screen content)

@@ -485,7 +485,13 @@ public sealed partial class MainViewModel : ObservableObject
         HueMax = Math.Clamp(AimHueMax, 0, 179),
         SatMin = Math.Clamp(AimSatMin, 0, 255),
         ValMin = Math.Clamp(AimValMin, 0, 255),
-        CaptureRadiusPx = Math.Clamp(AimCaptureRadius, 48, 900)
+        CaptureRadiusPx = Math.Clamp(AimCaptureRadius, 48, 900),
+        // Tracking guards (tuned constants; UI sliders are a follow-up).
+        // They reject scenery/false targets and stabilize the lock.
+        MaxTargetSizePx = 320,
+        MinFillPct = 25,
+        LockFrames = 3,
+        SmoothFactor = 0.5
     };
 
     /// <summary>Current humanization settings (for the aim-assist jitter).</summary>

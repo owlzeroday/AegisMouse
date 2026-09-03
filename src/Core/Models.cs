@@ -160,6 +160,14 @@ public sealed class AimAssistSettings
     public int AimOffsetPct { get; set; } = 18;
     /// <summary>Detected blobs smaller than this (px) are noise and ignored.</summary>
     public int MinTargetSizePx { get; set; } = 10;
+    /// <summary>Blobs taller/wider than this (px) are scenery (hillsides, buildings), not players.</summary>
+    public int MaxTargetSizePx { get; set; } = 320;
+    /// <summary>Matched pixels must fill at least this % of the bounding box (sparse grass speckles fail).</summary>
+    public int MinFillPct { get; set; } = 25;
+    /// <summary>Same blob must persist this many frames before any pull starts (kills 1-frame flicker).</summary>
+    public int LockFrames { get; set; } = 3;
+    /// <summary>EMA history weight on output (0.05..0.95, higher = smoother). Kills rotational jitter.</summary>
+    public double SmoothFactor { get; set; } = 0.5;
     /// <summary>HSV target color. Hue 0..179, S/V 0..255 (OpenCV convention).</summary>
     public int HueMin { get; set; }
     public int HueMax { get; set; } = 179;
@@ -248,6 +256,11 @@ public static class ProfileSanitizer
         s.DeadzonePx = Math.Clamp(s.DeadzonePx, 0, 200);
         s.AimOffsetPct = Math.Clamp(s.AimOffsetPct, 0, 100);
         s.MinTargetSizePx = Math.Clamp(s.MinTargetSizePx, 1, 400);
+        s.MaxTargetSizePx = Math.Clamp(s.MaxTargetSizePx, 16, 900);
+        if (s.MaxTargetSizePx < s.MinTargetSizePx) s.MaxTargetSizePx = s.MinTargetSizePx;
+        s.MinFillPct = Math.Clamp(s.MinFillPct, 5, 90);
+        s.LockFrames = Math.Clamp(s.LockFrames, 1, 10);
+        s.SmoothFactor = double.IsFinite(s.SmoothFactor) ? Math.Clamp(s.SmoothFactor, 0.05, 0.95) : 0.5;
         if (s.HueMin > s.HueMax) (s.HueMin, s.HueMax) = (s.HueMax, s.HueMin);
         s.HueMin = Math.Clamp(s.HueMin, 0, 179);
         s.HueMax = Math.Clamp(s.HueMax, 0, 179);

@@ -2,7 +2,7 @@
 ; Build: "C:\Users\fortu\AppData\Local\Programs\Inno Setup 6\ISCC.exe" installer\AegisMouse.iss
 
 #define AppName "AegisMouse"
-#define AppVersion "1.3.5"
+#define AppVersion "1.3.6"
 #define AppPublisher "AegisMouse Project"
 #define AppExeName "AegisMouse.App.exe"
 #define PublishDir "..\publish"

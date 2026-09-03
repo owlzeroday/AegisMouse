@@ -83,6 +83,50 @@ public class AimVisionTests
     }
 
     [Fact]
+    public void Detect_Rejects_Giant_Blob()
+    {
+        // A whole matching hillside must not become a "target".
+        var px = Frame(64, 64, 255, 0, 0);
+        var s = new AimAssistSettings { HueMin = 0, HueMax = 20, SatMin = 100, ValMin = 100, MinTargetSizePx = 5, MaxTargetSizePx = 24 };
+        Assert.Empty(AimVision.Detect(px, 64, 64, s));
+    }
+
+    [Fact]
+    public void Detect_Rejects_Wide_Patch()
+    {
+        // Solid 40x10 ground strip: 100% fill, but h/w = 0.25 (not humanoid).
+        var px = Frame(64, 64, 10, 10, 10);
+        FillRect(px, 64, 10, 40, 40, 10, 255, 0, 0);
+        Assert.Empty(AimVision.Detect(px, 64, 64, Red));
+    }
+
+    [Fact]
+    public void Detect_Rejects_Sparse_Speckle()
+    {
+        // 20x20 hollow square: humanoid aspect but only 19% fill (grass-like).
+        var px = Frame(64, 64, 10, 10, 10);
+        FillRect(px, 64, 20, 20, 20, 1, 255, 0, 0);   // top edge
+        FillRect(px, 64, 20, 39, 20, 1, 255, 0, 0);   // bottom edge
+        FillRect(px, 64, 20, 21, 1, 18, 255, 0, 0);   // left edge
+        FillRect(px, 64, 39, 21, 1, 18, 255, 0, 0);   // right edge (76/400 px = 19% fill)
+        var targets = AimVision.Detect(px, 64, 64, Red);
+        Assert.Empty(targets);
+    }
+
+    [Fact]
+    public void Detect_Accepts_Person_Shaped()
+    {
+        // Solid 12x30 figure: humanoid aspect (2.5), full density, sane size.
+        var px = Frame(64, 64, 10, 10, 10);
+        FillRect(px, 64, 20, 15, 12, 30, 255, 0, 0);
+        var t = Assert.Single(AimVision.Detect(px, 64, 64, Red));
+        Assert.Equal(20, t.Left);
+        Assert.Equal(15, t.Top);
+        Assert.Equal(12, t.Width);
+        Assert.Equal(30, t.Height);
+    }
+
+    [Fact]
     public void Head_Offset_Point()
     {
         var t = new AimTarget { Left = 0, Top = 100, Width = 40, Height = 80 };

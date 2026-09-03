@@ -49,6 +49,8 @@ public sealed class AimAssistService : IDisposable
     AimAssistSettings? _settings;
     HumanizeSettings? _humanize;
     readonly Humanizer _humanizer = new();
+    readonly TargetLock _lock = new();
+    double _smX, _smY;   // EMA-smoothed output (kills per-frame rotational jitter)
     Thread? _thread;
 
     /// <summary>Debug/vision frames (raised on the capture thread; only while the debug window is open).</summary>
@@ -71,7 +73,11 @@ public sealed class AimAssistService : IDisposable
     public void SetHumanize(HumanizeSettings h) => _humanize = h;
 
     /// <summary>True while the trigger key/button is held (or debug vision is open).</summary>
-    public void SetArmed(bool armed) => _armed = armed;
+    public void SetArmed(bool armed)
+    {
+        _armed = armed;
+        if (!armed) { _lock.Reset(); _smX = _smY = 0; }  // never resume a stale lock or fling
+    }
 
     /// <summary>Freeze the capture region at a fixed screen point (used by the debug window).</summary>
     public void SetDebugCenter(int x, int y) { _fixX = x; _fixY = y; _fixedCenter = true; }
@@ -104,9 +110,28 @@ public sealed class AimAssistService : IDisposable
 
             int cx = cap.Width / 2, cy = cap.Height / 2;
             int curX = cursor.X - cap.Left, curY = cursor.Y - cap.Top;   // current cursor in capture-space
-            var sel = _armed && s.Enabled
-                ? AimVision.SelectTarget(targets, curX, curY, s.FovRadiusPx)
-                : null;
+
+            // Sticky lock (debounce + hysteresis) instead of re-picking nearest
+            // every frame — the old stateless pick is what caused wild rotation
+            // when 2+ blobs were visible.
+            AimTarget? sel = null;
+            if (_armed && s.Enabled)
+            {
+                double fovSq = (double)s.FovRadiusPx * s.FovRadiusPx;
+                var inFov = targets.Where(t =>
+                {
+                    double ex = t.CenterX - curX, ey = t.CenterY - curY;
+                    return ex * ex + ey * ey <= fovSq;
+                }).ToList();
+                sel = _lock.Update(inFov, curX, curY, s);
+            }
+            else
+            {
+                _lock.Reset();
+                _smX = _smY = 0;
+            }
+            // Overlay shows the tracked box even during debounce so tuning stays visible.
+            var shown = _armed ? _lock.Current : null;
             double dist = sel is null ? 0 : Math.Sqrt(Math.Pow(sel.CenterX - curX, 2) + Math.Pow(sel.CenterY - curY, 2));
 
             if (sel is not null)
@@ -117,12 +142,19 @@ public sealed class AimAssistService : IDisposable
                 if (d > s.DeadzonePx)
                 {
                     double pull = Math.Min(d * Math.Clamp(s.PullStrength, 0.01, 0.99), s.MaxTurnPxPerFrame);
-                    int mx = (int)Math.Round(dx / d * pull);
-                    int my = (int)Math.Round(dy / d * pull);
-                    var (jx, jy) = _humanizer.Move(mx, my, h);
-                    NativeInput.MoveRelative(jx, jy);
+                    int tx = (int)Math.Round(dx / d * pull);
+                    int ty = (int)Math.Round(dy / d * pull);
+                    // EMA smoothing: output chases the target instead of jumping to
+                    // it — consecutive frames blend instead of whipping the view.
+                    double k = 1.0 - Math.Clamp(s.SmoothFactor, 0.05, 0.95);
+                    _smX += (tx - _smX) * k;
+                    _smY += (ty - _smY) * k;
+                    var (jx, jy) = _humanizer.Move((int)Math.Round(_smX), (int)Math.Round(_smY), h);
+                    if (jx != 0 || jy != 0) NativeInput.MoveRelative(jx, jy);
                 }
+                else { _smX = _smY = 0; }
             }
+            else { _smX = _smY = 0; }
 
             // Stream to debug window (throttled by the loop rate; copies only when a sink exists)
             if (_debug)
@@ -142,7 +174,7 @@ public sealed class AimAssistService : IDisposable
                     ScreenTop = cap.Top,
                     FovRadiusPx = s.FovRadiusPx,
                     Targets = targets,
-                    Selected = sel,
+                    Selected = shown,
                     DistancePx = dist,
                     Armed = _armed
                 };

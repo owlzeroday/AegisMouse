@@ -93,6 +93,17 @@ public static class AimVision
         {
             int w = b.r - b.l + 1, h = b.b - b.t + 1;
             if (w < s.MinTargetSizePx || h < s.MinTargetSizePx) continue;
+            // Scenery gate: a whole matching hillside/wall is not a player.
+            if (w > s.MaxTargetSizePx || h > s.MaxTargetSizePx) continue;
+            // Humanoid gate: standing players are taller than wide. Wide flat
+            // patches (ground, rooftops, grass beds) have h/w << 1 and are rejected.
+            // Prone/crouched players still pass (min 0.8).
+            double aspect = (double)h / Math.Max(1, w);
+            if (aspect < 0.8 || aspect > 5.0) continue;
+            // Density gate: sparse speckles (grass, foliage, dither) union into a
+            // bounding box that is mostly empty. Players are solid pixel masses.
+            double fill = 100.0 * b.count / Math.Max(1, w * h);
+            if (fill < s.MinFillPct) continue;
             blobs.Add(new AimTarget { Left = b.l, Top = b.t, Width = w, Height = h });
         }
 
