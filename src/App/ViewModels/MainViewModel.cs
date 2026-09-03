@@ -20,11 +20,15 @@ public sealed class ModeOption
     public override string ToString() => Label;
 }
 
-public sealed class ArmOption
+public sealed class ArmOption : IEquatable<ArmOption>
 {
     public MouseButton? Button { get; init; }
     public required string Label { get; init; }
     public override string ToString() => Label;
+    // Value equality so ComboBox SelectedItem matching never shows a blank box.
+    public bool Equals(ArmOption? other) => other is not null && Button == other.Button;
+    public override bool Equals(object? obj) => obj is ArmOption o && Equals(o);
+    public override int GetHashCode() => Button.GetHashCode();
 }
 
 public sealed partial class BindingItem : ObservableObject
@@ -61,6 +65,22 @@ public sealed partial class BindingItem : ObservableObject
     [ObservableProperty] int fireRateRpm = 600;
     [ObservableProperty] int burstCount = 3;
     [ObservableProperty] MouseButton? armButton;
+    partial void OnArmButtonChanged(MouseButton? value) => OnPropertyChanged(nameof(ArmButtonOption));
+    /// <summary>
+    /// Wrapper for the "Armed while" ComboBox (same pattern as the 1.3.4 aim-trigger
+    /// fix: SelectedItem over a shared static list — never a null-key SelectedValue).
+    /// </summary>
+    public ArmOption? ArmButtonOption
+    {
+        get => ArmButton is null
+            ? MainViewModel.ArmOptions[0]
+            : MainViewModel.ArmOptions.FirstOrDefault(o => o.Button == ArmButton) ?? MainViewModel.ArmOptions[0];
+        set
+        {
+            if (ArmButton != value?.Button) ArmButton = value?.Button;
+            OnPropertyChanged();
+        }
+    }
     [ObservableProperty] int remapVk = AegisMouse.Engine.Interop.Vk.F;
     [ObservableProperty] bool isMacroMode;
     partial void OnModeChanged(BindingMode value) => IsMacroMode = value == BindingMode.HoldMacro;
@@ -150,7 +170,11 @@ public sealed partial class MainViewModel : ObservableObject
         new() { Mode = BindingMode.RapidFireRecoil, Label = "Rapid fire + Recoil" },
         new() { Mode = BindingMode.KeyRemap, Label = "Key remap" },
     ];
-    public IReadOnlyList<ArmOption> ArmOptions { get; } =
+    /// <summary>
+    /// Shared static arm-trigger list: the Aim tab AND every per-binding "Armed while"
+    /// ComboBox bind SelectedItem against these same instances (single source of truth).
+    /// </summary>
+    public static IReadOnlyList<ArmOption> ArmOptions { get; } =
     [
         new() { Button = null, Label = "None (always)" },
         new() { Button = MouseButton.Left, Label = "Left" },
@@ -207,6 +231,21 @@ public sealed partial class MainViewModel : ObservableObject
 
         _engine.InputEvent += s => StatusText = s;
 
+        // Global F9 toggles recoil calibration (the header badge advertises it,
+        // but nothing was wired to it). Hook events arrive on the hook thread,
+        // so marshal to the UI thread — and ignore the key while typing.
+        _engine.KeyEvent += (vk, down) =>
+        {
+            if (!down || vk != AegisMouse.Engine.Interop.Vk.F9) return;
+            if (System.Windows.Application.Current?.Dispatcher is not { } dispatcher) return;
+            void Toggle()
+            {
+                if (System.Windows.Input.Keyboard.FocusedElement is System.Windows.Controls.TextBox) return;
+                ToggleCalibrateCommand.Execute(null);
+            }
+            if (dispatcher.CheckAccess()) Toggle(); else dispatcher.BeginInvoke(Toggle);
+        };
+
         PropertyChanged += (_, e) =>
         {
             if (_suppressSave) return;
@@ -229,6 +268,7 @@ public sealed partial class MainViewModel : ObservableObject
                 case nameof(AimFovRadius):
                 case nameof(AimPull):
                 case nameof(AimMaxTurn):
+                case nameof(AimDeadzone):
                 case nameof(AimOffsetPct):
                 case nameof(AimMinSize):
                 case nameof(AimHueMin):
@@ -318,6 +358,7 @@ public sealed partial class MainViewModel : ObservableObject
             AimFovRadius = a.FovRadiusPx;
             AimPull = a.PullStrength;
             AimMaxTurn = a.MaxTurnPxPerFrame;
+            AimDeadzone = a.DeadzonePx;
             AimOffsetPct = a.AimOffsetPct;
             AimMinSize = a.MinTargetSizePx;
             AimHueMin = a.HueMin;
@@ -453,6 +494,7 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] double aimFovRadius = 150;
     [ObservableProperty] double aimPull = 0.75;
     [ObservableProperty] double aimMaxTurn = 10;
+    [ObservableProperty] int aimDeadzone = 4;
     [ObservableProperty] int aimOffsetPct = 18;
     [ObservableProperty] int aimMinSize = 10;
     [ObservableProperty] int aimHueMin;
@@ -464,7 +506,9 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>Selected arm-trigger option (works with the ComboBox; "None" is a real item, not a null selection).</summary>
     public ArmOption? AimTriggerOption
     {
-        get => AimTrigger is null ? ArmOptions[0] : ArmOptions.FirstOrDefault(o => o.Button == AimTrigger);
+        get => AimTrigger is null
+            ? ArmOptions[0]
+            : ArmOptions.FirstOrDefault(o => o.Button == AimTrigger) ?? ArmOptions[0];
         set => AimTrigger = value?.Button;
     }
 
@@ -479,6 +523,7 @@ public sealed partial class MainViewModel : ObservableObject
         FovRadiusPx = (int)Math.Clamp(AimFovRadius, 8, 900),
         PullStrength = Math.Clamp(AimPull, 0.05, 0.99),
         MaxTurnPxPerFrame = (int)Math.Clamp(AimMaxTurn, 1, 60),
+        DeadzonePx = Math.Clamp(AimDeadzone, 0, 200),
         AimOffsetPct = Math.Clamp(AimOffsetPct, 0, 100),
         MinTargetSizePx = Math.Clamp(AimMinSize, 3, 400),
         HueMin = Math.Clamp(AimHueMin, 0, 179),

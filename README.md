@@ -2,9 +2,17 @@
 
 Universal mouse macro engine — works with any brand of mouse. Input is synthesized at the OS level (SendInput + low-level hooks), so no vendor driver is required.
 
-**Current version: 1.3.6**
+**Current version: 1.3.7**
 
 ## Changelog
+
+### 1.3.7 — Settings & dropdown wiring audit
+- Fixed dead "Armed while" dropdown (wrong value paths — rewired to shared static list + SelectedItem wrapper, same pattern as 1.3.4)
+- Fixed pull strength slider (10–95 range vs 0.05–0.99 value forced max pull + "1000%" display — now 0.05–0.99 in both windows)
+- Fixed Macros empty-state (watched the Recoil grid with copy-pasted text)
+- Disabled blank-grid-row entry on all 3 grids (rows added that way skipped auto-save wiring — use the + Add buttons)
+- Wired the advertised F9 global hotkey to recoil calibration (UI-thread marshaled, ignored while typing)
+- Added missing Aim tab sliders: max turn, deadzone (new setting), aim point, capture radius
 
 ### 1.3.6 — Aim assist tracking overhaul (Knives Out)
 - Fixed false locks on grass/objects — new validation gates: max target size (scenery), humanoid aspect ratio (0.8–5.0 h/w), blob density (≥25% fill rejects sparse speckles)

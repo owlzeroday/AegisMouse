@@ -99,7 +99,7 @@
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="Pull %" Foreground="{StaticResource Muted}" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0" />
-                            <Slider Grid.Column="1" Minimum="10" Maximum="95" Value="{Binding AimPull}" VerticalAlignment="Center" />
+                            <Slider Grid.Column="1" Minimum="0.05" Maximum="0.99" Value="{Binding AimPull}" VerticalAlignment="Center" />
                             <TextBlock Grid.Column="2" Text="{Binding AimPull, StringFormat={}{0:P0}}" Foreground="{StaticResource Muted}" FontSize="11" VerticalAlignment="Center" Margin="8,0,0,0" />
                         </Grid>
                         <Grid Margin="0,6,0,4">
