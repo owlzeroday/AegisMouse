@@ -1,5 +1,6 @@
 ﻿using System.Collections.Specialized;
 using System.Linq;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -46,6 +47,16 @@ public partial class MainWindow : Window
         StateChanged += OnStateChanged;
         Closing += OnClosing;
         UpdateCalibBadge();
+
+        // Status-bar version tracks the shipped assembly version (csproj <Version>),
+        // so it can never go stale like the old hardcoded string.
+        try
+        {
+            var info = typeof(App).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+                ?? typeof(App).Assembly.GetName().Version?.ToString() ?? "?";
+            VersionBadge.Text = "v" + info.Split('+')[0];
+        }
+        catch { /* keep the XAML fallback text */ }
 
         // Recoil visualizer: subscribe to collection + property changes
         _vm.RecoilRows.CollectionChanged += OnRecoilRowsChanged;

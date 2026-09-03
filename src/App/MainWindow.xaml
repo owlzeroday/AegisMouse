@@ -663,7 +663,7 @@
             </Border.Effect>
             <DockPanel>
                 <!-- Right side: version -->
-                <TextBlock DockPanel.Dock="Right" Text="v1.0.1" Foreground="#FF6B7585" FontSize="10"
+                <TextBlock x:Name="VersionBadge" DockPanel.Dock="Right" Text="v1.3.5" Foreground="#FF6B7585" FontSize="10"
                            FontFamily="Cascadia Mono" VerticalAlignment="Center" Margin="14,0,0,0" />
                 <TextBlock x:Name="CalibBadge" DockPanel.Dock="Right" Text="CALIBRATING" Foreground="White" Background="{StaticResource Danger}"
                            FontSize="10" FontWeight="Bold" Padding="6,2" Margin="10,0,0,0" VerticalAlignment="Center" Visibility="Collapsed" />
