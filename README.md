@@ -2,9 +2,14 @@
 
 Universal mouse macro engine — works with any brand of mouse. Input is synthesized at the OS level (SendInput + low-level hooks), so no vendor driver is required.
 
-**Current version: 1.3.7**
+**Current version: 1.3.8**
 
 ## Changelog
+
+### 1.3.8 — Rapid-fire timing fix (SMGs felt slow/semi-auto)
+- Fire loops now use the 1 ms high-resolution timer (previously only hold-macros did — every rapid/burst/recoil wait overshot on the ~15.6 ms coarse timer, worst at high SMG RPM)
+- Hold time no longer stacks on top of the shot interval — a 600 RPM setting now delivers 600 RPM instead of ~555
+- Tip: set each weapon binding to its native rate (SMGs ~850–1000, rifles ~550–650)
 
 ### 1.3.7 — Settings & dropdown wiring audit
 - Fixed dead "Armed while" dropdown (wrong value paths — rewired to shared static list + SelectedItem wrapper, same pattern as 1.3.4)

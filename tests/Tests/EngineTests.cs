@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using AegisMouse.Core;
+using AegisMouse.Engine;
 using AegisMouse.Engine.Timing;
 using Xunit;
 
@@ -203,6 +204,20 @@ public class WheelDirectionTests
         Assert.Equal(1, Math.Clamp(60000 / 60000, 1, 5000));        // 60000 RPM → 1 ms
         Assert.Equal(1, Math.Clamp(60000 / 100000, 1, 5000));       // silly-high RPM → min 1 ms
         Assert.Equal(100, Math.Clamp(60000 / 600, 1, 5000));        // 600 RPM → 100 ms
+    }
+
+    [Fact]
+    public void ShotInterval_Compensates_Hold_So_Effective_Rpm_Matches_Setting()
+    {
+        // At 600 RPM each cycle must total 100 ms: 8 ms hold + 92 ms rest.
+        // The old code waited the full interval AFTER the hold (108 ms cycle
+        // = ~555 RPM), which is why SMGs felt slow/semi-auto vs native.
+        Assert.Equal(100, MacroEngine.ShotIntervalMs(600));
+        Assert.Equal(92, MacroEngine.RestAfterHoldMs(100, 8));
+        Assert.Equal(59, MacroEngine.RestAfterHoldMs(67, 8));   // ~900 RPM SMG
+        Assert.Equal(1, MacroEngine.RestAfterHoldMs(5, 8));     // floor, never 0/negative
+        Assert.Equal(5000, MacroEngine.ShotIntervalMs(1));
+        Assert.Equal(1, MacroEngine.ShotIntervalMs(60000));
     }
 
     [Fact]

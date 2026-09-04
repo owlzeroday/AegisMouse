@@ -166,14 +166,20 @@ public sealed class MacroEngine : IDisposable
                 NativeInput.ButtonUp(MouseButton.Left);
                 break;
             case BindingMode.BurstFire:
-                int interval = Math.Clamp(60000 / Math.Max(1, b.FireRateRpm), 1, 5000);
-                for (int i = 0; i < Math.Max(1, b.BurstCount) && !ct.IsCancellationRequested; i++)
+                int interval = ShotIntervalMs(b.FireRateRpm);
+                NativeInput.BeginHighResTimer();
+                try
                 {
-                    NativeInput.ButtonDown(MouseButton.Left);
-                    WaitMs(Math.Max(1, _humanizer.Hold(8, h)), ct);
-                    NativeInput.ButtonUp(MouseButton.Left);
-                    if (i < b.BurstCount - 1) WaitMs(_humanizer.Delay(interval, h), ct);
+                    for (int i = 0; i < Math.Max(1, b.BurstCount) && !ct.IsCancellationRequested; i++)
+                    {
+                        int hold = Math.Max(1, _humanizer.Hold(8, h));
+                        NativeInput.ButtonDown(MouseButton.Left);
+                        WaitMs(hold, ct);
+                        NativeInput.ButtonUp(MouseButton.Left);
+                        if (i < b.BurstCount - 1) WaitMs(Math.Max(1, _humanizer.Delay(RestAfterHoldMs(interval, hold), h)), ct);
+                    }
                 }
+                finally { NativeInput.EndHighResTimer(); }
                 break;
             case BindingMode.HoldMacro:
                 new MacroPlayer().Play(b.Actions, h, ct);
@@ -200,6 +206,16 @@ public sealed class MacroEngine : IDisposable
         lock (_held) return _held.Contains(b);
     }
 
+    /// <summary>Ms between shot starts for a fire rate (clamped to a sane range).</summary>
+    public static int ShotIntervalMs(int fireRateRpm) => Math.Clamp(60000 / Math.Max(1, fireRateRpm), 1, 5000);
+
+    /// <summary>
+    /// Rest time after ButtonUp: the hold already consumed part of the cycle, so
+    /// waiting the full interval on top of it makes effective RPM always lower
+    /// than configured (never below 1 ms).
+    /// </summary>
+    public static int RestAfterHoldMs(int intervalMs, int holdMs) => Math.Max(1, intervalMs - holdMs);
+
     void StartLoop(MouseButton button, string mode, Action body)
     {
         Cancel(button);
@@ -221,30 +237,45 @@ public sealed class MacroEngine : IDisposable
 
     void RapidFireLoop(ButtonBinding b)
     {
-        int interval = Math.Clamp(60000 / Math.Max(1, b.FireRateRpm), 1, 5000);
+        int interval = ShotIntervalMs(b.FireRateRpm);
         var ct = _active.TryGetValue(b.Trigger, out var c) ? c.Token : CancellationToken.None;
         var h = _profile?.Humanize ?? new HumanizeSettings();
-        while (Held(b.Trigger) && !ct.IsCancellationRequested)
+        // High-res timer: without timeBeginPeriod(1), Sleep/TickCount granularity
+        // (~15.6 ms) makes every wait overshoot and rapid fire runs slow — very
+        // noticeable on high-RPM SMGs where each millisecond matters.
+        NativeInput.BeginHighResTimer();
+        try
         {
-            NativeInput.ButtonDown(MouseButton.Left);
-            WaitMs(Math.Max(1, _humanizer.Hold(8, h)), ct);
-            NativeInput.ButtonUp(MouseButton.Left);
-            WaitMs(_humanizer.Delay(interval, h), ct);
+            while (Held(b.Trigger) && !ct.IsCancellationRequested)
+            {
+                int hold = Math.Max(1, _humanizer.Hold(8, h));
+                NativeInput.ButtonDown(MouseButton.Left);
+                WaitMs(hold, ct);
+                NativeInput.ButtonUp(MouseButton.Left);
+                WaitMs(Math.Max(1, _humanizer.Delay(RestAfterHoldMs(interval, hold), h)), ct);
+            }
         }
+        finally { NativeInput.EndHighResTimer(); }
     }
 
     void BurstFire(ButtonBinding b)
     {
-        int interval = Math.Clamp(60000 / Math.Max(1, b.FireRateRpm), 1, 5000);
+        int interval = ShotIntervalMs(b.FireRateRpm);
         var ct = _active.TryGetValue(b.Trigger, out var c) ? c.Token : CancellationToken.None;
         var h = _profile?.Humanize ?? new HumanizeSettings();
-        for (int i = 0; i < Math.Max(1, b.BurstCount) && !ct.IsCancellationRequested; i++)
+        NativeInput.BeginHighResTimer();
+        try
         {
-            NativeInput.ButtonDown(MouseButton.Left);
-            WaitMs(Math.Max(1, _humanizer.Hold(8, h)), ct);
-            NativeInput.ButtonUp(MouseButton.Left);
-            if (i < b.BurstCount - 1) WaitMs(_humanizer.Delay(interval, h), ct);
+            for (int i = 0; i < Math.Max(1, b.BurstCount) && !ct.IsCancellationRequested; i++)
+            {
+                int hold = Math.Max(1, _humanizer.Hold(8, h));
+                NativeInput.ButtonDown(MouseButton.Left);
+                WaitMs(hold, ct);
+                NativeInput.ButtonUp(MouseButton.Left);
+                if (i < b.BurstCount - 1) WaitMs(Math.Max(1, _humanizer.Delay(RestAfterHoldMs(interval, hold), h)), ct);
+            }
         }
+        finally { NativeInput.EndHighResTimer(); }
     }
 
     void HoldMacro(ButtonBinding b)
@@ -258,21 +289,26 @@ public sealed class MacroEngine : IDisposable
     {
         var profile = _profile;
         if (profile is null || profile.RecoilTable.Count == 0) return;
-        int interval = Math.Clamp(60000 / Math.Max(1, b.FireRateRpm), 1, 5000);
+        int interval = ShotIntervalMs(b.FireRateRpm);
         var ct = _active.TryGetValue(b.Trigger, out var c) ? c.Token : CancellationToken.None;
         var h = profile.Humanize;
         double strength = profile.RecoilStrength;
 
-        foreach (var step in profile.RecoilTable)
+        NativeInput.BeginHighResTimer();
+        try
         {
-            WaitMs(_humanizer.Delay(interval, h), ct);
-            if (ct.IsCancellationRequested || !Held(b.Trigger)) break;
-            if (_humanizer.SkipStep(h)) continue;
-            int dx = (int)Math.Round(step.Dx * strength);
-            int dy = (int)Math.Round(step.Dy * strength);
-            var (jx, jy) = _humanizer.Move(dx, dy, h);
-            NativeInput.MoveRelative(jx, jy);
+            foreach (var step in profile.RecoilTable)
+            {
+                WaitMs(_humanizer.Delay(interval, h), ct);
+                if (ct.IsCancellationRequested || !Held(b.Trigger)) break;
+                if (_humanizer.SkipStep(h)) continue;
+                int dx = (int)Math.Round(step.Dx * strength);
+                int dy = (int)Math.Round(step.Dy * strength);
+                var (jx, jy) = _humanizer.Move(dx, dy, h);
+                NativeInput.MoveRelative(jx, jy);
+            }
         }
+        finally { NativeInput.EndHighResTimer(); }
     }
 
     void RapidFireRecoil(ButtonBinding b)
@@ -280,29 +316,35 @@ public sealed class MacroEngine : IDisposable
         var profile = _profile;
         if (profile is null) return;
         if (profile.RecoilTable.Count == 0) { RapidFireLoop(b); return; }
-        int interval = Math.Clamp(60000 / Math.Max(1, b.FireRateRpm), 1, 5000);
+        int interval = ShotIntervalMs(b.FireRateRpm);
         var ct = _active.TryGetValue(b.Trigger, out var c) ? c.Token : CancellationToken.None;
         var h = profile.Humanize;
         double strength = profile.RecoilStrength;
         int stepIndex = 0;
 
-        while (Held(b.Trigger) && !ct.IsCancellationRequested)
+        NativeInput.BeginHighResTimer();
+        try
         {
-            NativeInput.ButtonDown(MouseButton.Left);
-            WaitMs(Math.Max(1, _humanizer.Hold(8, h)), ct);
-            NativeInput.ButtonUp(MouseButton.Left);
-            if (ct.IsCancellationRequested || !Held(b.Trigger)) break;
-            if (!_humanizer.SkipStep(h))
+            while (Held(b.Trigger) && !ct.IsCancellationRequested)
             {
-                var step = profile.RecoilTable[stepIndex % profile.RecoilTable.Count];
-                int dx = (int)Math.Round(step.Dx * strength);
-                int dy = (int)Math.Round(step.Dy * strength);
-                var (jx, jy) = _humanizer.Move(dx, dy, h);
-                NativeInput.MoveRelative(jx, jy);
+                int hold = Math.Max(1, _humanizer.Hold(8, h));
+                NativeInput.ButtonDown(MouseButton.Left);
+                WaitMs(hold, ct);
+                NativeInput.ButtonUp(MouseButton.Left);
+                if (ct.IsCancellationRequested || !Held(b.Trigger)) break;
+                if (!_humanizer.SkipStep(h))
+                {
+                    var step = profile.RecoilTable[stepIndex % profile.RecoilTable.Count];
+                    int dx = (int)Math.Round(step.Dx * strength);
+                    int dy = (int)Math.Round(step.Dy * strength);
+                    var (jx, jy) = _humanizer.Move(dx, dy, h);
+                    NativeInput.MoveRelative(jx, jy);
+                }
+                stepIndex++;
+                WaitMs(Math.Max(1, _humanizer.Delay(RestAfterHoldMs(interval, hold), h)), ct);
             }
-            stepIndex++;
-            WaitMs(_humanizer.Delay(interval, h), ct);
         }
+        finally { NativeInput.EndHighResTimer(); }
     }
 
     public void StartCalibration() { _calibrating = true; StateChanged?.Invoke(); }
