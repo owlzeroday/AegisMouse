@@ -152,9 +152,16 @@ public static class AimVision
     {
         int i = x * 4;
         var (hue, sat, val) = HsvOf(bgra[i], bgra[i + 1], bgra[i + 2]);
-        if (hue < s.HueMin || hue > s.HueMax) return false;
-        if (val < s.ValMin) return false;
-        if (sat < s.SatMin) return false;
+        if (HsvIn(hue, sat, val, s.HueMin, s.HueMax, s.SatMin, s.ValMin)) return true;
+        // Second band for alternate outfits (e.g. dark vs tan kits in Knives Out).
+        return s.UseSecondRange && HsvIn(hue, sat, val, s.HueMin2, s.HueMax2, s.SatMin2, s.ValMin2);
+    }
+
+    static bool HsvIn(int hue, int sat, int val, int hueMin, int hueMax, int satMin, int valMin)
+    {
+        if (hue < hueMin || hue > hueMax) return false;
+        if (val < valMin) return false;
+        if (sat < satMin) return false;
         return true;
     }
 

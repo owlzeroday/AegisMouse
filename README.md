@@ -2,9 +2,13 @@
 
 Universal mouse macro engine — works with any brand of mouse. Input is synthesized at the OS level (SendInput + low-level hooks), so no vendor driver is required.
 
-**Current version: 1.3.9**
+**Current version: 1.4.0**
 
 ## Changelog
+
+### 1.4.0 — Second color range + triggerbot
+- Second target color band (alternate outfits) — OR-ed into detection with the same shape/density gates, full sliders in the Aim tab, compact tuning in the debug window. Off by default.
+- Triggerbot — fires one shot per lock acquisition after the aim point holds on the crosshair for the set delay, with 2x re-arm band so edge jitter can't spray. Own toggle + delay + tolerance. Off by default.
 
 ### 1.3.9 — Aim stability trio
 - Velocity prediction — lock history extrapolates 2 frames ahead (capped), so strafing enemies are led instead of trailed

@@ -50,6 +50,8 @@ public sealed class AimAssistService : IDisposable
     HumanizeSettings? _humanize;
     readonly Humanizer _humanizer = new();
     readonly TargetLock _lock = new();
+    readonly TriggerbotState _trigger = new();
+    readonly Stopwatch _frameSw = Stopwatch.StartNew();
     double _smX, _smY;   // EMA-smoothed output (kills per-frame rotational jitter)
     Thread? _thread;
 
@@ -76,7 +78,7 @@ public sealed class AimAssistService : IDisposable
     public void SetArmed(bool armed)
     {
         _armed = armed;
-        if (!armed) { _lock.Reset(); _smX = _smY = 0; }  // never resume a stale lock or fling
+        if (!armed) { _lock.Reset(); _trigger.Reset(); _smX = _smY = 0; }  // never resume a stale lock or fling
     }
 
     /// <summary>Freeze the capture region at a fixed screen point (used by the debug window).</summary>
@@ -101,6 +103,7 @@ public sealed class AimAssistService : IDisposable
             int capLeft = _fixedCenter ? _fixX - size / 2 : cursor.X - size / 2;
             int capTop = _fixedCenter ? _fixY - size / 2 : cursor.Y - size / 2;
 
+            _frameSw.Restart();
             var cap = Capture(capLeft, capTop, size, size);
             if (cap is null) { Thread.Sleep(33); continue; }
 
@@ -128,11 +131,21 @@ public sealed class AimAssistService : IDisposable
             else
             {
                 _lock.Reset();
+                _trigger.Reset();
                 _smX = _smY = 0;
             }
             // Overlay shows the tracked box even during debounce so tuning stays visible.
             var shown = _armed ? _lock.Current : null;
             double dist = sel is null ? 0 : Math.Sqrt(Math.Pow(sel.CenterX - curX, 2) + Math.Pow(sel.CenterY - curY, 2));
+
+            // Triggerbot: one shot per acquisition while the aim point sits on
+            // the crosshair. Separate toggle — off unless explicitly enabled.
+            // Idle/sleep stretches never count toward the fire delay (restarted
+            // each active frame below), so arming can't fire instantly.
+            double frameMs = Math.Clamp(_frameSw.Elapsed.TotalMilliseconds, 1, 250);
+            if (s.TriggerbotEnabled && _armed && s.Enabled
+                && _trigger.Update(sel is not null, dist, s.TriggerbotTolerancePx, s.TriggerbotDelayMs, frameMs))
+                NativeInput.Click(MouseButton.Left, 8);
 
             if (sel is not null)
             {

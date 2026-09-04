@@ -276,6 +276,14 @@ public sealed partial class MainViewModel : ObservableObject
                 case nameof(AimSatMin):
                 case nameof(AimValMin):
                 case nameof(AimCaptureRadius):
+                case nameof(AimUseSecondRange):
+                case nameof(AimHueMin2):
+                case nameof(AimHueMax2):
+                case nameof(AimSatMin2):
+                case nameof(AimValMin2):
+                case nameof(AimTriggerbot):
+                case nameof(AimTriggerbotDelay):
+                case nameof(AimTriggerbotTol):
                     _saveTimer.Stop(); _saveTimer.Start();
                     break;
             }
@@ -366,6 +374,14 @@ public sealed partial class MainViewModel : ObservableObject
             AimSatMin = a.SatMin;
             AimValMin = a.ValMin;
             AimCaptureRadius = a.CaptureRadiusPx;
+            AimUseSecondRange = a.UseSecondRange;
+            AimHueMin2 = a.HueMin2;
+            AimHueMax2 = a.HueMax2;
+            AimSatMin2 = a.SatMin2;
+            AimValMin2 = a.ValMin2;
+            AimTriggerbot = a.TriggerbotEnabled;
+            AimTriggerbotDelay = a.TriggerbotDelayMs;
+            AimTriggerbotTol = a.TriggerbotTolerancePx;
 
             Bindings.Clear();
             foreach (var b in m.Bindings)
@@ -502,6 +518,14 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] int aimSatMin = 80;
     [ObservableProperty] int aimValMin = 60;
     [ObservableProperty] int aimCaptureRadius = 240;
+    [ObservableProperty] bool aimUseSecondRange;
+    [ObservableProperty] int aimHueMin2;
+    [ObservableProperty] int aimHueMax2 = 179;
+    [ObservableProperty] int aimSatMin2 = 80;
+    [ObservableProperty] int aimValMin2 = 60;
+    [ObservableProperty] bool aimTriggerbot;
+    [ObservableProperty] int aimTriggerbotDelay = 150;
+    [ObservableProperty] int aimTriggerbotTol = 6;
 
     /// <summary>Selected arm-trigger option (works with the ComboBox; "None" is a real item, not a null selection).</summary>
     public ArmOption? AimTriggerOption
@@ -531,6 +555,14 @@ public sealed partial class MainViewModel : ObservableObject
         SatMin = Math.Clamp(AimSatMin, 0, 255),
         ValMin = Math.Clamp(AimValMin, 0, 255),
         CaptureRadiusPx = Math.Clamp(AimCaptureRadius, 48, 900),
+        UseSecondRange = AimUseSecondRange,
+        HueMin2 = Math.Clamp(AimHueMin2, 0, 179),
+        HueMax2 = Math.Clamp(AimHueMax2, 0, 179),
+        SatMin2 = Math.Clamp(AimSatMin2, 0, 255),
+        ValMin2 = Math.Clamp(AimValMin2, 0, 255),
+        TriggerbotEnabled = AimTriggerbot,
+        TriggerbotDelayMs = Math.Clamp(AimTriggerbotDelay, 0, 1000),
+        TriggerbotTolerancePx = Math.Clamp(AimTriggerbotTol, 2, 50),
         // Tracking guards (tuned constants; UI sliders are a follow-up).
         // They reject scenery/false targets and stabilize the lock.
         MaxTargetSizePx = 320,

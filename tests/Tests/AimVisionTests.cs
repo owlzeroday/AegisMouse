@@ -127,6 +127,36 @@ public class AimVisionTests
     }
 
     [Fact]
+    public void Detect_SecondRange_Finds_Alternate_Outfit()
+    {
+        var px = Frame(64, 64, 10, 10, 10);
+        FillRect(px, 64, 20, 15, 12, 30, 0, 255, 0);   // green figure, person-shaped
+        var redOnly = new AimAssistSettings { HueMin = 0, HueMax = 20, SatMin = 100, ValMin = 100, MinTargetSizePx = 5 };
+        Assert.Empty(AimVision.Detect(px, 64, 64, redOnly));
+        var dual = new AimAssistSettings
+        {
+            HueMin = 0, HueMax = 20, SatMin = 100, ValMin = 100, MinTargetSizePx = 5,
+            UseSecondRange = true, HueMin2 = 60, HueMax2 = 110, SatMin2 = 100, ValMin2 = 100
+        };
+        var t = Assert.Single(AimVision.Detect(px, 64, 64, dual));
+        Assert.Equal(20, t.Left);
+        Assert.Equal(15, t.Top);
+    }
+
+    [Fact]
+    public void Detect_Primary_Still_Works_With_Second_Enabled()
+    {
+        var px = Frame(64, 64, 10, 10, 10);
+        FillRect(px, 64, 20, 15, 12, 30, 255, 0, 0);   // red figure
+        var dual = new AimAssistSettings
+        {
+            HueMin = 0, HueMax = 20, SatMin = 100, ValMin = 100, MinTargetSizePx = 5,
+            UseSecondRange = true, HueMin2 = 60, HueMax2 = 110, SatMin2 = 100, ValMin2 = 100
+        };
+        Assert.Single(AimVision.Detect(px, 64, 64, dual));
+    }
+
+    [Fact]
     public void Head_Offset_Point()
     {
         var t = new AimTarget { Left = 0, Top = 100, Width = 40, Height = 80 };

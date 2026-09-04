@@ -175,6 +175,18 @@ public sealed class AimAssistSettings
     public int ValMin { get; set; } = 60;
     /// <summary>Half-side of the square capture region around the crosshair (px).</summary>
     public int CaptureRadiusPx { get; set; } = 240;
+    /// <summary>Match a second HSV band too (different outfits). Off by default.</summary>
+    public bool UseSecondRange { get; set; }
+    public int HueMin2 { get; set; }
+    public int HueMax2 { get; set; } = 179;
+    public int SatMin2 { get; set; } = 80;
+    public int ValMin2 { get; set; } = 60;
+    /// <summary>Auto-fire one shot per lock acquisition while the aim point sits on the crosshair.</summary>
+    public bool TriggerbotEnabled { get; set; }
+    /// <summary>Target must hold inside tolerance this long (ms) before firing.</summary>
+    public int TriggerbotDelayMs { get; set; } = 150;
+    /// <summary>Fire only while aim-point distance is within this (px).</summary>
+    public int TriggerbotTolerancePx { get; set; } = 6;
 }
 
 /// <summary>
@@ -267,6 +279,13 @@ public static class ProfileSanitizer
         s.SatMin = Math.Clamp(s.SatMin, 0, 255);
         s.ValMin = Math.Clamp(s.ValMin, 0, 255);
         s.CaptureRadiusPx = Math.Clamp(s.CaptureRadiusPx, 48, 900);
+        if (s.HueMin2 > s.HueMax2) (s.HueMin2, s.HueMax2) = (s.HueMax2, s.HueMin2);
+        s.HueMin2 = Math.Clamp(s.HueMin2, 0, 179);
+        s.HueMax2 = Math.Clamp(s.HueMax2, 0, 179);
+        s.SatMin2 = Math.Clamp(s.SatMin2, 0, 255);
+        s.ValMin2 = Math.Clamp(s.ValMin2, 0, 255);
+        s.TriggerbotDelayMs = Math.Clamp(s.TriggerbotDelayMs, 0, 1000);
+        s.TriggerbotTolerancePx = Math.Clamp(s.TriggerbotTolerancePx, 2, 50);
     }
 }
 
