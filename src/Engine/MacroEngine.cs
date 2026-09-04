@@ -120,6 +120,12 @@ public sealed class MacroEngine : IDisposable
                 case BindingMode.RapidFireRecoil:
                     if (Armed(binding)) StartLoop(button, "RapidFireRecoil", () => RapidFireRecoil(binding));
                     break;
+                case BindingMode.RapidFireToggle:
+                    // Latch: press starts the loop, next press stops it.
+                    // Release must NOT cancel (see the up-branch exemption below).
+                    if (_active.ContainsKey(button)) Cancel(button);
+                    else StartLoop(button, "RapidFireToggle", () => RapidFireToggleLoop(binding));
+                    break;
                 case BindingMode.KeyRemap:
                     if (binding.RemapVk != 0) PressRemap(binding.RemapVk);
                     break;
@@ -130,7 +136,8 @@ public sealed class MacroEngine : IDisposable
         {
             if (binding.Mode == BindingMode.KeyRemap && binding.RemapVk != 0)
                 ReleaseRemap(binding.RemapVk);
-            Cancel(button);
+            // Toggle latch keeps running across releases — only a fresh press stops it.
+            if (binding.Mode != BindingMode.RapidFireToggle) Cancel(button);
         }
     }
 
@@ -161,7 +168,11 @@ public sealed class MacroEngine : IDisposable
         switch (b.Mode)
         {
             case BindingMode.RapidFire:
-                TapLeft(Math.Max(1, _humanizer.Hold(8, h)), ct);
+                TapLeft(Math.Max(1, _humanizer.Hold(ClickHoldMs(b), h)), ct);
+                break;
+            case BindingMode.RapidFireToggle:
+                // Wheels have no hold state to latch — one tap per notch.
+                TapLeft(Math.Max(1, _humanizer.Hold(ClickHoldMs(b), h)), ct);
                 break;
             case BindingMode.BurstFire:
                 int interval = ShotIntervalMs(b.FireRateRpm);
@@ -170,7 +181,7 @@ public sealed class MacroEngine : IDisposable
                 {
                     for (int i = 0; i < Math.Max(1, b.BurstCount) && !ct.IsCancellationRequested; i++)
                     {
-                        int hold = Math.Max(1, _humanizer.Hold(8, h));
+                        int hold = Math.Max(1, _humanizer.Hold(ClickHoldMs(b), h));
                         TapLeft(hold, ct);
                         if (i < b.BurstCount - 1) WaitMs(Math.Max(1, _humanizer.Delay(RestAfterHoldMs(interval, hold), h)), ct);
                     }
@@ -211,6 +222,9 @@ public sealed class MacroEngine : IDisposable
     /// than configured (never below 1 ms).
     /// </summary>
     public static int RestAfterHoldMs(int intervalMs, int holdMs) => Math.Max(1, intervalMs - holdMs);
+
+    /// <summary>Per-binding click down-time (ms). Old saves predate the field (0) → classic 8 ms.</summary>
+    static int ClickHoldMs(ButtonBinding b) => Math.Clamp(b.ClickHoldMs <= 0 ? 8 : b.ClickHoldMs, 1, 100);
 
     readonly HashSet<int> _heldKeys = new();
 
@@ -281,7 +295,7 @@ public sealed class MacroEngine : IDisposable
         {
             while (Held(b.Trigger) && !ct.IsCancellationRequested)
             {
-                int hold = Math.Max(1, _humanizer.Hold(8, h));
+                int hold = Math.Max(1, _humanizer.Hold(ClickHoldMs(b), h));
                 TapLeft(hold, ct);
                 WaitMs(Math.Max(1, _humanizer.Delay(RestAfterHoldMs(interval, hold), h)), ct);
             }
@@ -299,7 +313,7 @@ public sealed class MacroEngine : IDisposable
         {
             for (int i = 0; i < Math.Max(1, b.BurstCount) && !ct.IsCancellationRequested; i++)
             {
-                int hold = Math.Max(1, _humanizer.Hold(8, h));
+                int hold = Math.Max(1, _humanizer.Hold(ClickHoldMs(b), h));
                 TapLeft(hold, ct);
                 if (i < b.BurstCount - 1) WaitMs(Math.Max(1, _humanizer.Delay(RestAfterHoldMs(interval, hold), h)), ct);
             }
@@ -356,7 +370,7 @@ public sealed class MacroEngine : IDisposable
         {
             while (Held(b.Trigger) && !ct.IsCancellationRequested)
             {
-                int hold = Math.Max(1, _humanizer.Hold(8, h));
+                int hold = Math.Max(1, _humanizer.Hold(ClickHoldMs(b), h));
                 TapLeft(hold, ct);
                 if (ct.IsCancellationRequested || !Held(b.Trigger)) break;
                 if (!_humanizer.SkipStep(h))
@@ -368,6 +382,29 @@ public sealed class MacroEngine : IDisposable
                     NativeInput.MoveRelative(jx, jy);
                 }
                 stepIndex++;
+                WaitMs(Math.Max(1, _humanizer.Delay(RestAfterHoldMs(interval, hold), h)), ct);
+            }
+        }
+        finally { NativeInput.EndHighResTimer(); }
+    }
+
+    /// <summary>
+    /// Latched rapid fire: runs until cancelled (next press, profile switch,
+    /// disable, dispose). Unlike <see cref="RapidFireLoop(ButtonBinding)"/> it
+    /// never consults the physical hold state.
+    /// </summary>
+    void RapidFireToggleLoop(ButtonBinding b)
+    {
+        int interval = ShotIntervalMs(b.FireRateRpm);
+        var ct = _active.TryGetValue(b.Trigger, out var c) ? c.Token : CancellationToken.None;
+        var h = _profile?.Humanize ?? new HumanizeSettings();
+        NativeInput.BeginHighResTimer();
+        try
+        {
+            while (!ct.IsCancellationRequested)
+            {
+                int hold = Math.Max(1, _humanizer.Hold(ClickHoldMs(b), h));
+                TapLeft(hold, ct);
                 WaitMs(Math.Max(1, _humanizer.Delay(RestAfterHoldMs(interval, hold), h)), ct);
             }
         }

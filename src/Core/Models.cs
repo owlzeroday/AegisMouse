@@ -32,7 +32,9 @@ public enum BindingMode
     /// <summary>Forward a keyboard key instead of the mouse button.</summary>
     KeyRemap = 5,
     /// <summary>While held, auto-fire at the configured rate and apply one recoil-table step per shot.</summary>
-    RapidFireRecoil = 6
+    RapidFireRecoil = 6,
+    /// <summary>Press once to start auto-fire, press again to stop (latch). Managed by the Rapid Fire tab.</summary>
+    RapidFireToggle = 7
 }
 
 /// <summary>Single macro action in a sequence. Timing is in milliseconds.</summary>
@@ -98,6 +100,8 @@ public sealed class ButtonBinding
     public BindingMode Mode { get; set; } = BindingMode.Default;
     /// <summary>Fire rate for RapidFire/BurstFire (rounds per minute).</summary>
     public int FireRateRpm { get; set; } = 600;
+    /// <summary>Click down-time per synthetic shot (ms). Tuned in the Rapid Fire tab.</summary>
+    public int ClickHoldMs { get; set; } = 8;
     /// <summary>Number of shots for BurstFire.</summary>
     public int BurstCount { get; set; } = 3;
     /// <summary>Hold-to-arm button for RecoilComp (null = always armed).</summary>
@@ -247,6 +251,7 @@ public static class ProfileSanitizer
     public static void Sanitize(ButtonBinding b)
     {
         b.FireRateRpm = Math.Clamp(b.FireRateRpm, 60, 60000);
+        b.ClickHoldMs = Math.Clamp(b.ClickHoldMs, 1, 100);
         b.BurstCount = Math.Clamp(b.BurstCount, 1, 100);
         b.RemapVk = b.RemapVk is > 0 and <= 255 ? b.RemapVk : 0;
         b.Actions ??= [];

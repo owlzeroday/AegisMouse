@@ -44,6 +44,7 @@ public sealed partial class BindingItem : ObservableObject
     public void Load(ButtonBinding b)
     {
         Trigger = b.Trigger; Mode = b.Mode; FireRateRpm = b.FireRateRpm;
+        ClickHoldMs = b.ClickHoldMs <= 0 ? 8 : b.ClickHoldMs;
         BurstCount = b.BurstCount; ArmButton = b.ArmButton; RemapVk = b.RemapVk;
         Actions.Clear();
         foreach (var a in b.Actions) Actions.Add(new MacroActionItem(a));
@@ -54,6 +55,7 @@ public sealed partial class BindingItem : ObservableObject
         Trigger = Trigger,
         Mode = Mode,
         FireRateRpm = Math.Clamp(FireRateRpm, 60, 60000),
+        ClickHoldMs = Math.Clamp(ClickHoldMs, 1, 100),
         BurstCount = Math.Clamp(BurstCount, 1, 100),
         ArmButton = ArmButton,
         RemapVk = RemapVk is > 0 and <= 255 ? RemapVk : 0,
@@ -63,6 +65,7 @@ public sealed partial class BindingItem : ObservableObject
     [ObservableProperty] MouseButton trigger;
     [ObservableProperty] BindingMode mode = BindingMode.Default;
     [ObservableProperty] int fireRateRpm = 600;
+    [ObservableProperty] int clickHoldMs = 8;
     [ObservableProperty] int burstCount = 3;
     [ObservableProperty] MouseButton? armButton;
     partial void OnArmButtonChanged(MouseButton? value) => OnPropertyChanged(nameof(ArmButtonOption));
@@ -164,6 +167,7 @@ public sealed partial class MainViewModel : ObservableObject
     [
         new() { Mode = BindingMode.Default, Label = "Default (native)" },
         new() { Mode = BindingMode.RapidFire, Label = "Rapid fire" },
+        new() { Mode = BindingMode.RapidFireToggle, Label = "Rapid fire (toggle)" },
         new() { Mode = BindingMode.BurstFire, Label = "Burst fire" },
         new() { Mode = BindingMode.HoldMacro, Label = "Hold macro" },
         new() { Mode = BindingMode.RecoilComp, Label = "Recoil compensation" },
@@ -227,6 +231,12 @@ public sealed partial class MainViewModel : ObservableObject
                 foreach (MacroActionItem item in e.OldItems)
                     SelectedBinding.Actions.Remove(item);
             ScheduleSave();
+        };
+
+        // Grid-side delete of the rapid binding must uncheck the Rapid tab.
+        Bindings.CollectionChanged += (_, _) =>
+        {
+            if (!_syncingRapid && !_suppressSave) RefreshRapidTab();
         };
 
         _engine.InputEvent += s => StatusText = s;
@@ -414,6 +424,7 @@ public sealed partial class MainViewModel : ObservableObject
 
             SelectedBinding = Bindings.FirstOrDefault();
             UpdateSummary(item);
+            RefreshRapidTab();
         }
         finally { _suppressSave = false; }
     }
@@ -537,6 +548,95 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] bool aimTriggerbot;
     [ObservableProperty] int aimTriggerbotDelay = 150;
     [ObservableProperty] int aimTriggerbotTol = 6;
+
+    // ── Rapid Fire tab: friendly editor over the first rapid binding ──
+    public static IReadOnlyList<string> RapidModes { get; } =
+        ["Hold (fire while held)", "Toggle (press on/off)"];
+
+    [ObservableProperty] bool rapidEnabled;
+    [ObservableProperty] MouseButton rapidTrigger = MouseButton.Side1;
+    [ObservableProperty] int rapidRpm = 800;
+    [ObservableProperty] int rapidHoldMs = 8;
+    [ObservableProperty] int rapidModeIndex;
+    bool _syncingRapid;
+
+    static bool IsRapidMode(BindingMode m) => m is BindingMode.RapidFire or BindingMode.RapidFireToggle;
+    BindingItem? FindRapidBinding() => Bindings.FirstOrDefault(b => IsRapidMode(b.Mode));
+
+    /// <summary>Reflect the grid's first rapid binding in the tab (or empty state).</summary>
+    void RefreshRapidTab()
+    {
+        _syncingRapid = true;
+        try
+        {
+            var rb = FindRapidBinding();
+            RapidEnabled = rb is not null;
+            if (rb is not null)
+            {
+                RapidTrigger = rb.Trigger;
+                RapidRpm = rb.FireRateRpm;
+                RapidHoldMs = rb.ClickHoldMs;
+                RapidModeIndex = rb.Mode == BindingMode.RapidFireToggle ? 1 : 0;
+            }
+        }
+        finally { _syncingRapid = false; }
+    }
+
+    void PushRapidToBinding(BindingItem rb)
+    {
+        rb.Trigger = RapidTrigger;
+        rb.Mode = RapidModeIndex == 1 ? BindingMode.RapidFireToggle : BindingMode.RapidFire;
+        rb.FireRateRpm = Math.Clamp(RapidRpm, 60, 60000);
+        rb.ClickHoldMs = Math.Clamp(RapidHoldMs, 1, 100);
+    }
+
+    void EnsureRapidBinding()
+    {
+        var rb = FindRapidBinding();
+        if (rb is null)
+        {
+            var used = Bindings.Select(b => b.Trigger).ToHashSet();
+            var trigger = used.Contains(RapidTrigger)
+                ? BindingItem.AllButtons.FirstOrDefault(b => !used.Contains(b), MouseButton.Side1)
+                : RapidTrigger;
+            rb = new BindingItem { Trigger = trigger };
+            rb.PropertyChanged += (_, _) => ScheduleSave();
+            rb.Actions.CollectionChanged += (_, _) => ScheduleSave();
+            Bindings.Add(rb);
+            SelectedBinding = rb;
+        }
+        PushRapidToBinding(rb);
+        ScheduleSave();
+    }
+
+    void RemoveRapidBinding()
+    {
+        var rb = FindRapidBinding();
+        if (rb is null) return;
+        Bindings.Remove(rb);
+        if (SelectedBinding == rb) SelectedBinding = Bindings.FirstOrDefault();
+        ScheduleSave();
+    }
+
+    partial void OnRapidEnabledChanged(bool value)
+    {
+        if (_syncingRapid || _suppressSave) return;
+        if (value) EnsureRapidBinding(); else RemoveRapidBinding();
+    }
+
+    partial void OnRapidModeIndexChanged(int value) => PushRapidFromTab();
+    partial void OnRapidRpmChanged(int value) => PushRapidFromTab();
+    partial void OnRapidHoldMsChanged(int value) => PushRapidFromTab();
+    partial void OnRapidTriggerChanged(MouseButton value) => PushRapidFromTab();
+
+    void PushRapidFromTab()
+    {
+        if (_syncingRapid || _suppressSave) return;
+        var rb = FindRapidBinding();
+        if (rb is null) { if (RapidEnabled) EnsureRapidBinding(); return; }
+        PushRapidToBinding(rb);
+        ScheduleSave();
+    }
 
     // ── Crosshair overlay (global, not per-profile) ──────────────────
     public static IReadOnlyList<string> CrosshairStyles { get; } = ["Cross", "Dot", "Circle"];

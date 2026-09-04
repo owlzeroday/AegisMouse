@@ -179,6 +179,36 @@ public class ProfileSerializationTests
     }
 }
 
+public class RapidToggleTests
+{
+    [Fact]
+    public void Toggle_Mode_And_Hold_Survive_Json_RoundTrip()
+    {
+        var b = new ButtonBinding
+        {
+            Trigger = MouseButton.Side1, Mode = BindingMode.RapidFireToggle,
+            FireRateRpm = 900, ClickHoldMs = 12
+        };
+        var back = System.Text.Json.JsonSerializer.Deserialize<ButtonBinding>(
+            System.Text.Json.JsonSerializer.Serialize(b))!;
+        Assert.Equal(BindingMode.RapidFireToggle, back.Mode);
+        Assert.Equal(900, back.FireRateRpm);
+        Assert.Equal(12, back.ClickHoldMs);
+    }
+
+    [Fact]
+    public void Legacy_Binding_Without_Hold_Defaults_Safe()
+    {
+        // Saves predating ClickHoldMs deserialize it as 0 — engine must fall
+        // back to the classic 8 ms, never a 0/negative hold.
+        var back = System.Text.Json.JsonSerializer.Deserialize<ButtonBinding>(
+            """{"Trigger":3,"Mode":2,"FireRateRpm":600,"BurstCount":3}""")!;
+        Assert.Equal(8, back.ClickHoldMs);   // initializer default survives
+        ProfileSanitizer.Sanitize(back);
+        Assert.InRange(back.ClickHoldMs, 1, 100);
+    }
+}
+
 public class VkNameTests
 {
     [Theory]

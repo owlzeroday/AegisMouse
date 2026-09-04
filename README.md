@@ -2,9 +2,14 @@
 
 Universal mouse macro engine — works with any brand of mouse. Input is synthesized at the OS level (SendInput + low-level hooks), so no vendor driver is required.
 
-**Current version: 1.5.3**
+**Current version: 1.6.0**
 
 ## Changelog
+
+### 1.6.0 — Dedicated Rapid Fire tab
+- Rapid fire moves out of the grid into its own tab: enable, trigger picker, Hold/Toggle playback modes, RPM slider (60–2000), click-hold tuning. The tab edits the profile's rapid binding directly — single source of truth, grid stays in sync both ways.
+- New `RapidFireToggle` engine mode: press to latch auto-fire on, press again to stop (release-safe, stops on disable/profile switch like everything else)
+- Per-binding click down-time (`ClickHoldMs`) replaces the hardcoded 8 ms everywhere, with legacy-save fallback
 
 ### 1.5.3 — Steady fire + input safety
 - Frozen capture while armed — the cursor-following frame + pull formed a move/shift/correct feedback loop (the wild rotation while firing). Frame now freezes at the arm point like the debug preview.
