@@ -116,6 +116,34 @@ public class TargetLockTests
     }
 
     [Fact]
+    public void Lock_Ignores_Nearby_Speckle_Hijack()
+    {
+        var lk = new TargetLock();
+        var a = Box(100, 100, 40, 30);   // the player (1200 px²)
+        for (int i = 0; i < 3; i++) lk.Update([a], 120, 115, S);
+        // Speckle (9 px²) sits 5 px from lock center; real box drifted 10 px.
+        // Nearest-center would pick the speckle — area gate must refuse it.
+        var moved = Box(110, 100, 40, 30);
+        var speckle = Box(118, 113, 3, 3);
+        var held = lk.Update([moved, speckle], 120, 115, S);
+        Assert.NotNull(held);
+        Assert.Equal(110, held!.Left);
+    }
+
+    [Fact]
+    public void Predict_Damps_Center_Noise_On_Small_Target()
+    {
+        var lk = new TargetLock();
+        // ±2 px of detection noise, no real motion — prediction must hold
+        // still instead of injecting lead jitter.
+        int[] lefts = [100, 102, 99, 101];
+        foreach (var l in lefts) lk.Update([Box(l, 100, 20, 30)], 110, 115, S);
+        var (x, y) = lk.Predict(2, 48);
+        Assert.Equal(111, x, precision: 6);   // last center, no lead
+        Assert.Equal(115, y, precision: 6);
+    }
+
+    [Fact]
     public void Follows_Slowly_Moving_Target()
     {
         var lk = new TargetLock();

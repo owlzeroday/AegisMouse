@@ -18,6 +18,7 @@ public partial class MainWindow : Window
     readonly MainViewModel _vm;
     readonly AimAssistService _aim = new();
     AimDebugWindow? _debugWin;
+    CrosshairWindow? _crossWin;
     bool _aimArmedMouse, _aimArmedKey;
     System.Windows.Forms.NotifyIcon? _tray;
     bool _trayMinimized;
@@ -43,7 +44,9 @@ public partial class MainWindow : Window
         {
             if (e.PropertyName == nameof(MainViewModel.Calibrating)) UpdateCalibBadge();
             if (AimProps.Contains(e.PropertyName)) PushAimSettings();
+            if (e.PropertyName?.StartsWith("Crosshair") == true) SyncCrosshair();
         };
+        SyncCrosshair();
         StateChanged += OnStateChanged;
         Closing += OnClosing;
         UpdateCalibBadge();
@@ -76,6 +79,17 @@ public partial class MainWindow : Window
     {
         _aim.SetSettings(_vm.BuildAimSettings());
         _aim.SetHumanize(_vm.BuildHumanizeSettings());
+    }
+
+    void SyncCrosshair()
+    {
+        if (_vm.CrosshairEnabled)
+        {
+            _crossWin ??= new CrosshairWindow();
+            _crossWin.Apply(_vm.BuildCrosshairSettings());
+            if (!_crossWin.IsVisible) _crossWin.Show();
+        }
+        else _crossWin?.Hide();
     }
 
     void OnAimKeyEvent(int vk, bool down)
@@ -268,6 +282,8 @@ menu.Items.Add("Open AegisMouse", null, (_, _) => RestoreFromTray());
     protected override void OnClosed(EventArgs e)
     {
         _aim.Dispose();
+        _crossWin?.Close();
+        _crossWin = null;
         _debugWin?.Close();
         _tray?.Dispose();
         _tray = null;

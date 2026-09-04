@@ -157,6 +157,27 @@ public class AimVisionTests
     }
 
     [Fact]
+    public void Detect_Relaxed_Keeps_Flickering_Midrange_Blob()
+    {
+        // 7 px solid square vs MinTargetSize 10: strict drops it (mid-range
+        // shimmer), tracking mode holds it.
+        var px = Frame(64, 64, 10, 10, 10);
+        FillRect(px, 64, 20, 20, 7, 7, 255, 0, 0);
+        var s = new AimAssistSettings { HueMin = 0, HueMax = 20, SatMin = 100, ValMin = 100, MinTargetSizePx = 10 };
+        Assert.Empty(AimVision.Detect(px, 64, 64, s, relaxed: false));
+        var t = Assert.Single(AimVision.Detect(px, 64, 64, s, relaxed: true));
+        Assert.Equal(7, t.Width);
+    }
+
+    [Fact]
+    public void Detect_Relaxed_Still_Rejects_Scenery()
+    {
+        var px = Frame(64, 64, 255, 0, 0);   // full-frame hillside
+        var s = new AimAssistSettings { HueMin = 0, HueMax = 20, SatMin = 100, ValMin = 100, MinTargetSizePx = 5, MaxTargetSizePx = 24 };
+        Assert.Empty(AimVision.Detect(px, 64, 64, s, relaxed: true));
+    }
+
+    [Fact]
     public void Head_Offset_Point()
     {
         var t = new AimTarget { Left = 0, Top = 100, Width = 40, Height = 80 };

@@ -286,6 +286,16 @@ public sealed partial class MainViewModel : ObservableObject
                 case nameof(AimTriggerbotTol):
                     _saveTimer.Stop(); _saveTimer.Start();
                     break;
+                case nameof(CrosshairEnabled):
+                case nameof(CrosshairStyleIndex):
+                case nameof(CrosshairSize):
+                case nameof(CrosshairThick):
+                case nameof(CrosshairColorIndex):
+                case nameof(CrosshairOffsetX):
+                case nameof(CrosshairOffsetY):
+                case nameof(CrosshairFollow):
+                    SaveCrosshair();
+                    break;
             }
         };
 
@@ -317,6 +327,7 @@ public sealed partial class MainViewModel : ObservableObject
             MinimizeToTray = _db.GetSetting("minimize_tray") == "1";
             using (var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run"))
                 StartWithWindows = key?.GetValue("AegisMouse") != null;
+            LoadCrosshair();
         }
         finally { _suppressSave = false; }
 
@@ -526,6 +537,63 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] bool aimTriggerbot;
     [ObservableProperty] int aimTriggerbotDelay = 150;
     [ObservableProperty] int aimTriggerbotTol = 6;
+
+    // ── Crosshair overlay (global, not per-profile) ──────────────────
+    public static IReadOnlyList<string> CrosshairStyles { get; } = ["Cross", "Dot", "Circle"];
+    public static IReadOnlyList<string> CrosshairColorNames { get; } =
+        ["Green", "Red", "Cyan", "White", "Yellow", "Magenta"];
+    static readonly uint[] CrosshairColors =
+        [0xFF00E676, 0xFFFF5252, 0xFF00E5FF, 0xFFFFFFFF, 0xFFFFE135, 0xFFFF40F0];
+
+    [ObservableProperty] bool crosshairEnabled;
+    [ObservableProperty] int crosshairStyleIndex;
+    [ObservableProperty] int crosshairSize = 24;
+    [ObservableProperty] int crosshairThick = 2;
+    [ObservableProperty] int crosshairColorIndex;
+    [ObservableProperty] int crosshairOffsetX;
+    [ObservableProperty] int crosshairOffsetY;
+    [ObservableProperty] bool crosshairFollow;
+
+    public CrosshairSettings BuildCrosshairSettings() => new()
+    {
+        Enabled = CrosshairEnabled,
+        Style = Enum.IsDefined(typeof(CrosshairStyle), CrosshairStyleIndex) ? (CrosshairStyle)CrosshairStyleIndex : CrosshairStyle.Cross,
+        SizePx = Math.Clamp(CrosshairSize, 4, 128),
+        ThicknessPx = Math.Clamp(CrosshairThick, 1, 8),
+        ColorArgb = CrosshairColors[Math.Clamp(CrosshairColorIndex, 0, CrosshairColors.Length - 1)],
+        OffsetX = Math.Clamp(CrosshairOffsetX, -600, 600),
+        OffsetY = Math.Clamp(CrosshairOffsetY, -600, 600),
+        FollowCursor = CrosshairFollow
+    };
+
+    void SaveCrosshair()
+    {
+        if (_suppressSave) return;
+        try { _db.SetSetting("crosshair", System.Text.Json.JsonSerializer.Serialize(BuildCrosshairSettings())); }
+        catch (Exception ex) { Log.Warning(ex, "Failed to save crosshair settings"); }
+    }
+
+    void LoadCrosshair()
+    {
+        try
+        {
+            var json = _db.GetSetting("crosshair");
+            if (json is null) return;
+            var c = System.Text.Json.JsonSerializer.Deserialize<CrosshairSettings>(json);
+            if (c is null) return;
+            ProfileSanitizer.Sanitize(c);
+            CrosshairEnabled = c.Enabled;
+            CrosshairStyleIndex = (int)c.Style;
+            CrosshairSize = c.SizePx;
+            CrosshairThick = c.ThicknessPx;
+            int idx = Array.IndexOf(CrosshairColors, c.ColorArgb);
+            CrosshairColorIndex = idx >= 0 ? idx : 0;
+            CrosshairOffsetX = c.OffsetX;
+            CrosshairOffsetY = c.OffsetY;
+            CrosshairFollow = c.FollowCursor;
+        }
+        catch (Exception ex) { Log.Warning(ex, "Bad crosshair settings, using defaults"); }
+    }
 
     /// <summary>Selected arm-trigger option (works with the ComboBox; "None" is a real item, not a null selection).</summary>
     public ArmOption? AimTriggerOption

@@ -2,9 +2,15 @@
 
 Universal mouse macro engine — works with any brand of mouse. Input is synthesized at the OS level (SendInput + low-level hooks), so no vendor driver is required.
 
-**Current version: 1.4.1**
+**Current version: 1.5.0**
 
 ## Changelog
+
+### 1.5.0 — Mid-range lock hardening + custom crosshair
+- Relaxed tracking gates while a lock exists (mid-range blobs shimmer around strict cutoffs — no more engage/drop stutter); acquisition stays strict
+- Anti-speckle guard: continuation candidates must be 0.25x–4x of the lock's area, so noise can't hijack the lock and whip the view
+- Prediction damping: sub-6 px wander reads as stationary instead of injecting lead jitter into small targets
+- New Crosshair tab: custom overlay (cross/dot/circle, 6 colors, size, thickness, center offsets, follow-cursor mode) — click-through, never steals focus, persists across restarts
 
 ### 1.4.1 — Aim tab scroll fix
 - The Aim tab had no scrollbar: new 1.4.0 rows overflowed the window and the triggerbot card collapsed to zero height (invisible). Tab now scrolls, all rows Auto.

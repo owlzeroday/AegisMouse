@@ -59,7 +59,10 @@ public sealed class TargetLock
 
         if (_tracked is not null)
         {
-            var cont = Nearest(targets, _tracked.CenterX, _tracked.CenterY);
+            // Area gate first: a 3 px speckle next to the lock must never win
+            // "nearest" over the real (moved) box — mid-range flicker made the
+            // lock hop to noise and the view whipped with it.
+            var cont = NearestPassing(targets, _tracked, _tracked.CenterX, _tracked.CenterY);
             if (cont is not null && (CenterDist(cont, _tracked) <= ContinueDistPx || IoU(cont, _tracked) >= ContinueIou))
             {
                 Track(cont);
@@ -100,6 +103,13 @@ public sealed class TargetLock
         var arr = _history.ToArray();
         var first = arr[0];
         var last = arr[^1];
+        // Stationary damping: sub-6 px of total wander is center noise, not
+        // motion — extrapolating it would inject ±leadFrames of jitter into
+        // small mid-range targets. Hold still instead.
+        double wander = 0;
+        for (int i = 1; i < arr.Length; i++)
+            wander = Math.Max(wander, Math.Sqrt(Math.Pow(arr[i].X - arr[0].X, 2) + Math.Pow(arr[i].Y - arr[0].Y, 2)));
+        if (wander < 6) return (last.X, last.Y);
         double n = arr.Length - 1;
         double vx = (last.X - first.X) / n, vy = (last.Y - first.Y) / n;
         double px = last.X + vx * leadFrames, py = last.Y + vy * leadFrames;
@@ -140,6 +150,27 @@ public sealed class TargetLock
         double bestDist = double.MaxValue;
         foreach (var t in targets)
         {
+            double dx = t.CenterX - cx, dy = t.CenterY - cy;
+            double d2 = dx * dx + dy * dy;
+            if (d2 < bestDist) { bestDist = d2; best = t; }
+        }
+        return best;
+    }
+
+    /// <summary>
+    /// Nearest candidate whose area is within 0.25x–4x of the tracked box.
+    /// Speckles can't hijack the lock; genuine growth/shrink (approach, crouch)
+    /// still passes.
+    /// </summary>
+    static AimTarget? NearestPassing(IReadOnlyList<AimTarget> targets, AimTarget tracked, int cx, int cy)
+    {
+        double baseArea = Math.Max(1, tracked.Area);
+        AimTarget? best = null;
+        double bestDist = double.MaxValue;
+        foreach (var t in targets)
+        {
+            double ratio = t.Area / baseArea;
+            if (ratio < 0.25 || ratio > 4.0) continue;
             double dx = t.CenterX - cx, dy = t.CenterY - cy;
             double d2 = dx * dx + dy * dy;
             if (d2 < bestDist) { bestDist = d2; best = t; }

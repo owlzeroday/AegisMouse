@@ -189,6 +189,29 @@ public sealed class AimAssistSettings
     public int TriggerbotTolerancePx { get; set; } = 6;
 }
 
+/// <summary>Custom crosshair overlay style.</summary>
+public enum CrosshairStyle
+{
+    Cross = 0,
+    Dot = 1,
+    Circle = 2
+}
+
+/// <summary>Screen overlay crosshair (click-through, topmost). Global, not per-profile.</summary>
+public sealed class CrosshairSettings
+{
+    public bool Enabled { get; set; }
+    public CrosshairStyle Style { get; set; } = CrosshairStyle.Cross;
+    /// <summary>Cross arm length / dot diameter / circle diameter (px).</summary>
+    public int SizePx { get; set; } = 24;
+    public int ThicknessPx { get; set; } = 2;
+    public uint ColorArgb { get; set; } = 0xFF00E676;
+    /// <summary>Offset from screen center (px). Ignored while following the cursor.</summary>
+    public int OffsetX { get; set; }
+    public int OffsetY { get; set; }
+    public bool FollowCursor { get; set; }
+}
+
 /// <summary>
 /// Defense-in-depth: clamp every persisted value on LOAD, not just on UI save.
 /// The SQLite DB lives in %ProgramData% and can be edited by same-user malware,
@@ -286,6 +309,16 @@ public static class ProfileSanitizer
         s.ValMin2 = Math.Clamp(s.ValMin2, 0, 255);
         s.TriggerbotDelayMs = Math.Clamp(s.TriggerbotDelayMs, 0, 1000);
         s.TriggerbotTolerancePx = Math.Clamp(s.TriggerbotTolerancePx, 2, 50);
+    }
+
+    public static void Sanitize(CrosshairSettings c)
+    {
+        if (!Enum.IsDefined(c.Style)) c.Style = CrosshairStyle.Cross;
+        c.SizePx = Math.Clamp(c.SizePx, 4, 128);
+        c.ThicknessPx = Math.Clamp(c.ThicknessPx, 1, 8);
+        c.OffsetX = Math.Clamp(c.OffsetX, -600, 600);
+        c.OffsetY = Math.Clamp(c.OffsetY, -600, 600);
+        if (c.ColorArgb < 0xFF000000) c.ColorArgb |= 0xFF000000;  // invisible ink helps nobody
     }
 }
 

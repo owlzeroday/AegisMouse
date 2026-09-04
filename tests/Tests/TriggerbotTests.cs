@@ -1,3 +1,4 @@
+using AegisMouse.Core;
 using AegisMouse.Engine;
 using Xunit;
 
@@ -42,5 +43,36 @@ public class TriggerbotTests
         var tb = new TriggerbotState();
         for (int i = 0; i < 20; i++)
             Assert.False(tb.Update(false, 0, 6, 0, 16));
+    }
+}
+
+public class CrosshairSettingsTests
+{
+    [Fact]
+    public void Sanitize_Clamps_Overlay_Values()
+    {
+        var c = new CrosshairSettings
+        {
+            Style = (CrosshairStyle)99, SizePx = 500, ThicknessPx = 0,
+            ColorArgb = 0x00001122, OffsetX = -9999, OffsetY = 9999
+        };
+        ProfileSanitizer.Sanitize(c);
+        Assert.Equal(CrosshairStyle.Cross, c.Style);
+        Assert.Equal(128, c.SizePx);
+        Assert.Equal(1, c.ThicknessPx);
+        Assert.Equal(0xFF001122u, c.ColorArgb);   // forced opaque
+        Assert.Equal(-600, c.OffsetX);
+        Assert.Equal(600, c.OffsetY);
+    }
+
+    [Fact]
+    public void Settings_RoundTrip_ThroughJson()
+    {
+        var c = new CrosshairSettings { Enabled = true, Style = CrosshairStyle.Circle, SizePx = 40 };
+        var back = System.Text.Json.JsonSerializer.Deserialize<CrosshairSettings>(
+            System.Text.Json.JsonSerializer.Serialize(c))!;
+        Assert.True(back.Enabled);
+        Assert.Equal(CrosshairStyle.Circle, back.Style);
+        Assert.Equal(40, back.SizePx);
     }
 }

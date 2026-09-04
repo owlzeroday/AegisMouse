@@ -108,7 +108,9 @@ public sealed class AimAssistService : IDisposable
             if (cap is null) { Thread.Sleep(33); continue; }
 
             var sw = Stopwatch.StartNew();
-            var targets = AimVision.Detect(cap.Bgra, cap.Width, cap.Height, s);
+            // Relaxed gates while tracking: mid-range blobs shimmer around the
+            // strict cutoffs — strict acquisition would engage/drop stutter.
+            var targets = AimVision.Detect(cap.Bgra, cap.Width, cap.Height, s, relaxed: _lock.Current is not null);
             int detectMs = (int)sw.ElapsedMilliseconds;
 
             int cx = cap.Width / 2, cy = cap.Height / 2;

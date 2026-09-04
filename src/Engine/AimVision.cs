@@ -26,10 +26,19 @@ public static class AimVision
     /// Returns connected blobs matching the configured HSV range.
     /// Pixels are BGRA (B=byte0, G=byte1, R=byte2, A=byte3), row-major.
     /// </summary>
-    public static List<AimTarget> Detect(ReadOnlySpan<byte> bgra, int width, int height, AimAssistSettings s)
+    /// <param name="relaxed">
+    /// Tracking mode: a lock already exists, so hold onto it through 1–2 px of
+    /// flicker. Gates loosen ~30 % (mid-range blobs shimmer around the strict
+    /// cutoffs frame-to-frame, which used to reset debounce forever and caused
+    /// the engage/drop stutter). Acquisition always uses strict gates.
+    /// </param>
+    public static List<AimTarget> Detect(ReadOnlySpan<byte> bgra, int width, int height, AimAssistSettings s, bool relaxed = false)
     {
         var blobs = new List<AimTarget>();
         if (bgra.Length < width * height * 4 || width < 2 || height < 2) return blobs;
+        int minSize = relaxed ? Math.Max(2, (int)(s.MinTargetSizePx * 0.7)) : s.MinTargetSizePx;
+        double minFill = relaxed ? Math.Max(10, (int)(s.MinFillPct * 0.7)) : s.MinFillPct;
+        double aspectMin = relaxed ? 0.6 : 0.8, aspectMax = relaxed ? 6.0 : 5.0;
 
         // Two-pass scanline connected components with run-length encoding.
         // NOTE: union-find state lives in a dedicated label->parent map, NOT in the
@@ -95,18 +104,18 @@ public static class AimVision
         foreach (var b in boxes.Values)
         {
             int w = b.r - b.l + 1, h = b.b - b.t + 1;
-            if (w < s.MinTargetSizePx || h < s.MinTargetSizePx) continue;
+            if (w < minSize || h < minSize) continue;
             // Scenery gate: a whole matching hillside/wall is not a player.
             if (w > s.MaxTargetSizePx || h > s.MaxTargetSizePx) continue;
             // Humanoid gate: standing players are taller than wide. Wide flat
             // patches (ground, rooftops, grass beds) have h/w << 1 and are rejected.
             // Prone/crouched players still pass (min 0.8).
             double aspect = (double)h / Math.Max(1, w);
-            if (aspect < 0.8 || aspect > 5.0) continue;
+            if (aspect < aspectMin || aspect > aspectMax) continue;
             // Density gate: sparse speckles (grass, foliage, dither) union into a
             // bounding box that is mostly empty. Players are solid pixel masses.
             double fill = 100.0 * b.count / Math.Max(1, w * h);
-            if (fill < s.MinFillPct) continue;
+            if (fill < minFill) continue;
             blobs.Add(new AimTarget { Left = b.l, Top = b.t, Width = w, Height = h });
         }
 
