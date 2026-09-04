@@ -83,25 +83,31 @@ public partial class MainWindow : Window
 
     void SyncCrosshair()
     {
-        if (_vm.CrosshairEnabled)
+        // Never let an overlay failure take down the main window (a Show-time
+        // throw here once left the app running headless with no UI at all).
+        try
         {
-            _crossWin ??= new CrosshairWindow();
-            _crossWin.Apply(_vm.BuildCrosshairSettings());
-            if (!_crossWin.IsVisible)
+            if (_vm.CrosshairEnabled)
             {
-                _crossWin.Show();
-                Log.Information("Crosshair overlay shown");
+                _crossWin ??= new CrosshairWindow();
+                _crossWin.Apply(_vm.BuildCrosshairSettings());
+                if (!_crossWin.IsVisible)
+                {
+                    _crossWin.Show();
+                    Log.Information("Crosshair overlay shown");
+                }
+                // Post-layout redraw: guarantees pixels even if the pre-Show pass
+                // ran before layout existed.
+                Dispatcher.BeginInvoke(() => _crossWin?.Refresh(),
+                    System.Windows.Threading.DispatcherPriority.Loaded);
             }
-            // Post-layout redraw: guarantees pixels even if the pre-Show pass
-            // ran before layout existed.
-            Dispatcher.BeginInvoke(() => _crossWin?.Refresh(),
-                System.Windows.Threading.DispatcherPriority.Loaded);
+            else
+            {
+                _crossWin?.Hide();
+                Log.Information("Crosshair overlay hidden");
+            }
         }
-        else
-        {
-            _crossWin?.Hide();
-            Log.Information("Crosshair overlay hidden");
-        }
+        catch (Exception ex) { Log.Error(ex, "Crosshair overlay failed"); }
     }
 
     void OnAimKeyEvent(int vk, bool down)

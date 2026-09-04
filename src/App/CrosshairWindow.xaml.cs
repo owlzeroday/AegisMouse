@@ -11,6 +11,10 @@ namespace AegisMouse.App;
 /// <summary>
 /// Click-through overlay crosshair. Never takes focus, never intercepts input
 /// (WS_EX_TRANSPARENT + NOACTIVATE), closes with the main window.
+/// NOTE: focus prevention lives in the NOACTIVATE ex-style, NOT in
+/// ShowActivated — WPF throws InvalidOperationException when showing a
+/// ShowActivated=false window that is Maximized, which used to kill the main
+/// window at startup whenever the overlay was enabled.
 /// </summary>
 public partial class CrosshairWindow : Window
 {

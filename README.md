@@ -2,9 +2,13 @@
 
 Universal mouse macro engine — works with any brand of mouse. Input is synthesized at the OS level (SendInput + low-level hooks), so no vendor driver is required.
 
-**Current version: 1.5.1**
+**Current version: 1.5.2**
 
 ## Changelog
+
+### 1.5.2 — Headless-at-startup crash fix
+- Fixed `ShowActivated=false` + `Maximized` overlay killing the main window whenever the crosshair was enabled (app ran headless with no UI). Focus prevention now relies solely on the `WS_EX_NOACTIVATE` style, which has no such restriction.
+- `SyncCrosshair()` is exception-guarded + logged, so an overlay failure can never take down the main window again.
 
 ### 1.5.1 — Crosshair overlay show fix
 - Render falls back to primary-screen size when layout isn't ready, plus a guaranteed post-Show redraw — the overlay could previously end up blank when the first pass ran pre-layout
