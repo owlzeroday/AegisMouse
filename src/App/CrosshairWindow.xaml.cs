@@ -49,15 +49,24 @@ public partial class CrosshairWindow : Window
         Render();
     }
 
+    /// <summary>Re-render once visible (post-Show layout pass).</summary>
+    public void Refresh() => Render();
+
     void Render()
     {
         Pad.Children.Clear();
-        if (!_settings.Enabled || ActualWidth < 10 || ActualHeight < 10) return;
+        if (!_settings.Enabled) return;
+        // Before first layout ActualWidth/Height are 0 — fall back to the
+        // primary screen so Apply-before-Show still draws; SizeChanged redraws
+        // at the real size right after.
+        double w = ActualWidth >= 10 ? ActualWidth : SystemParameters.PrimaryScreenWidth;
+        double h = ActualHeight >= 10 ? ActualHeight : SystemParameters.PrimaryScreenHeight;
+        if (w < 10 || h < 10) return;
 
         var mousePx = System.Windows.Forms.Control.MousePosition;
         System.Windows.Point anchor = _settings.FollowCursor
             ? new System.Windows.Point(mousePx.X, mousePx.Y)
-            : new System.Windows.Point(ActualWidth / 2 + _settings.OffsetX, ActualHeight / 2 + _settings.OffsetY);
+            : new System.Windows.Point(w / 2 + _settings.OffsetX, h / 2 + _settings.OffsetY);
         // MousePosition is screen px; WPF canvas is device-independent — convert.
         if (_settings.FollowCursor)
         {

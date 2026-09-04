@@ -2,9 +2,13 @@
 
 Universal mouse macro engine — works with any brand of mouse. Input is synthesized at the OS level (SendInput + low-level hooks), so no vendor driver is required.
 
-**Current version: 1.5.0**
+**Current version: 1.5.1**
 
 ## Changelog
+
+### 1.5.1 — Crosshair overlay show fix
+- Render falls back to primary-screen size when layout isn't ready, plus a guaranteed post-Show redraw — the overlay could previously end up blank when the first pass ran pre-layout
+- Show/hide now logged so the log proves the overlay state
 
 ### 1.5.0 — Mid-range lock hardening + custom crosshair
 - Relaxed tracking gates while a lock exists (mid-range blobs shimmer around strict cutoffs — no more engage/drop stutter); acquisition stays strict

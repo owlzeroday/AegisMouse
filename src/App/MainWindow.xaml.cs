@@ -87,9 +87,21 @@ public partial class MainWindow : Window
         {
             _crossWin ??= new CrosshairWindow();
             _crossWin.Apply(_vm.BuildCrosshairSettings());
-            if (!_crossWin.IsVisible) _crossWin.Show();
+            if (!_crossWin.IsVisible)
+            {
+                _crossWin.Show();
+                Log.Information("Crosshair overlay shown");
+            }
+            // Post-layout redraw: guarantees pixels even if the pre-Show pass
+            // ran before layout existed.
+            Dispatcher.BeginInvoke(() => _crossWin?.Refresh(),
+                System.Windows.Threading.DispatcherPriority.Loaded);
         }
-        else _crossWin?.Hide();
+        else
+        {
+            _crossWin?.Hide();
+            Log.Information("Crosshair overlay hidden");
+        }
     }
 
     void OnAimKeyEvent(int vk, bool down)
