@@ -74,11 +74,22 @@ public sealed class AimAssistService : IDisposable
     public void SetSettings(AimAssistSettings s) => _settings = s;
     public void SetHumanize(HumanizeSettings h) => _humanize = h;
 
+    volatile bool _armValid;
+    volatile int _armX, _armY;
+
     /// <summary>True while the trigger key/button is held (or debug vision is open).</summary>
     public void SetArmed(bool armed)
     {
+        if (armed && !_armed)
+        {
+            // Freeze the capture region at the arm point. A cursor-following
+            // capture + pull is a feedback loop (move → frame shifts → correct
+            // → overshoot): that oscillation is the "wild rotation while firing".
+            var c = Cursor.Position;
+            _armX = c.X; _armY = c.Y; _armValid = true;
+        }
         _armed = armed;
-        if (!armed) { _lock.Reset(); _trigger.Reset(); _smX = _smY = 0; }  // never resume a stale lock or fling
+        if (!armed) { _lock.Reset(); _trigger.Reset(); _smX = _smY = 0; _armValid = false; }
     }
 
     /// <summary>Freeze the capture region at a fixed screen point (used by the debug window).</summary>
@@ -99,9 +110,11 @@ public sealed class AimAssistService : IDisposable
             int size = Math.Clamp(s.CaptureRadiusPx, 48, 900) * 2;
             var cursor = Cursor.Position;
 
-            // Capture region: fixed while the debug window is open (steady preview), cursor-following otherwise
-            int capLeft = _fixedCenter ? _fixX - size / 2 : cursor.X - size / 2;
-            int capTop = _fixedCenter ? _fixY - size / 2 : cursor.Y - size / 2;
+            // Capture region: fixed while the debug window is open (steady preview)
+            // or while armed (frozen arm point — kills the move/shift/correct
+            // feedback loop); cursor-following only when idle.
+            int capLeft = _fixedCenter ? _fixX - size / 2 : _armValid ? _armX - size / 2 : cursor.X - size / 2;
+            int capTop = _fixedCenter ? _fixY - size / 2 : _armValid ? _armY - size / 2 : cursor.Y - size / 2;
 
             _frameSw.Restart();
             var cap = Capture(capLeft, capTop, size, size);

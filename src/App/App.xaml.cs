@@ -17,7 +17,18 @@ public partial class App : WpfApplication
 
     protected override void OnStartup(StartupEventArgs e)
     {
-        _instanceMutex = new System.Threading.Mutex(true, @"Local\AegisMouse_SingleInstance", out bool firstInstance);
+        bool firstInstance;
+        try
+        {
+            _instanceMutex = new System.Threading.Mutex(true, @"Local\AegisMouse_SingleInstance", out firstInstance);
+        }
+        catch (System.Threading.AbandonedMutexException ex)
+        {
+            // Previous instance crashed while holding the mutex — the OS hands
+            // us the orphaned handle instead of letting us start. Take it.
+            _instanceMutex = ex.Mutex ?? new System.Threading.Mutex(true, @"Local\AegisMouse_SingleInstance", out firstInstance);
+            firstInstance = true;
+        }
         if (!firstInstance)
         {
             System.Windows.MessageBox.Show("AegisMouse is already running (see the system tray).", "AegisMouse",
@@ -34,6 +45,8 @@ public partial class App : WpfApplication
                 Path.Combine(AppPaths.LogDirectory, "aegismouse-.log"),
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: 7,
+                fileSizeLimitBytes: 10_000_000,
+                rollOnFileSizeLimit: true,
                 outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
             .CreateLogger();
 

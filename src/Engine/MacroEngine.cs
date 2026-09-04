@@ -69,7 +69,7 @@ public sealed class MacroEngine : IDisposable
 
     public void SetEnabled(bool enabled)
     {
-        if (!enabled) CancelAll();
+        if (!enabled) { CancelAll(); ReleaseAllKeys(); }
         _enabled = enabled;
         _hook.ShouldSuppress = _enabled
             ? _hook.ShouldSuppress
@@ -121,7 +121,7 @@ public sealed class MacroEngine : IDisposable
                     if (Armed(binding)) StartLoop(button, "RapidFireRecoil", () => RapidFireRecoil(binding));
                     break;
                 case BindingMode.KeyRemap:
-                    if (binding.RemapVk != 0) NativeInput.KeyDown(binding.RemapVk);
+                    if (binding.RemapVk != 0) PressRemap(binding.RemapVk);
                     break;
             }
             InputEvent?.Invoke($"{(button is MouseButton.Left or MouseButton.Right or MouseButton.Middle ? $"{button} down" : $"{button} pressed")} → {binding.Mode}");
@@ -129,7 +129,7 @@ public sealed class MacroEngine : IDisposable
         else
         {
             if (binding.Mode == BindingMode.KeyRemap && binding.RemapVk != 0)
-                NativeInput.KeyUp(binding.RemapVk);
+                ReleaseRemap(binding.RemapVk);
             Cancel(button);
         }
     }
@@ -161,9 +161,7 @@ public sealed class MacroEngine : IDisposable
         switch (b.Mode)
         {
             case BindingMode.RapidFire:
-                NativeInput.ButtonDown(MouseButton.Left);
-                WaitMs(Math.Max(1, _humanizer.Hold(8, h)), ct);
-                NativeInput.ButtonUp(MouseButton.Left);
+                TapLeft(Math.Max(1, _humanizer.Hold(8, h)), ct);
                 break;
             case BindingMode.BurstFire:
                 int interval = ShotIntervalMs(b.FireRateRpm);
@@ -173,9 +171,7 @@ public sealed class MacroEngine : IDisposable
                     for (int i = 0; i < Math.Max(1, b.BurstCount) && !ct.IsCancellationRequested; i++)
                     {
                         int hold = Math.Max(1, _humanizer.Hold(8, h));
-                        NativeInput.ButtonDown(MouseButton.Left);
-                        WaitMs(hold, ct);
-                        NativeInput.ButtonUp(MouseButton.Left);
+                        TapLeft(hold, ct);
                         if (i < b.BurstCount - 1) WaitMs(Math.Max(1, _humanizer.Delay(RestAfterHoldMs(interval, hold), h)), ct);
                     }
                 }
@@ -216,6 +212,43 @@ public sealed class MacroEngine : IDisposable
     /// </summary>
     public static int RestAfterHoldMs(int intervalMs, int holdMs) => Math.Max(1, intervalMs - holdMs);
 
+    readonly HashSet<int> _heldKeys = new();
+
+    /// <summary>
+    /// One synthetic left click that can never stick down: cancellation between
+    /// down and up (Alt+Tab, re-press, disable) used to leave the button held.
+    /// </summary>
+    static void TapLeft(int holdMs, CancellationToken ct)
+    {
+        NativeInput.ButtonDown(MouseButton.Left);
+        try { WaitMs(holdMs, ct); }
+        finally { NativeInput.ButtonUp(MouseButton.Left); }
+    }
+
+    void PressRemap(int vk)
+    {
+        lock (_heldKeys) _heldKeys.Add(vk);
+        NativeInput.KeyDown(vk);
+    }
+
+    void ReleaseRemap(int vk)
+    {
+        lock (_heldKeys) _heldKeys.Remove(vk);
+        NativeInput.KeyUp(vk);
+    }
+
+    /// <summary>
+    /// Release every tracked remap key. Call when focus is lost or the engine
+    /// stops — a KeyDown without its KeyUp (Alt+Tab mid-hold) sticks otherwise.
+    /// </summary>
+    public void ReleaseAllKeys()
+    {
+        int[] vks;
+        lock (_heldKeys) { vks = _heldKeys.ToArray(); _heldKeys.Clear(); }
+        foreach (var vk in vks)
+            try { NativeInput.KeyUp(vk); } catch { }
+    }
+
     void StartLoop(MouseButton button, string mode, Action body)
     {
         Cancel(button);
@@ -249,9 +282,7 @@ public sealed class MacroEngine : IDisposable
             while (Held(b.Trigger) && !ct.IsCancellationRequested)
             {
                 int hold = Math.Max(1, _humanizer.Hold(8, h));
-                NativeInput.ButtonDown(MouseButton.Left);
-                WaitMs(hold, ct);
-                NativeInput.ButtonUp(MouseButton.Left);
+                TapLeft(hold, ct);
                 WaitMs(Math.Max(1, _humanizer.Delay(RestAfterHoldMs(interval, hold), h)), ct);
             }
         }
@@ -269,9 +300,7 @@ public sealed class MacroEngine : IDisposable
             for (int i = 0; i < Math.Max(1, b.BurstCount) && !ct.IsCancellationRequested; i++)
             {
                 int hold = Math.Max(1, _humanizer.Hold(8, h));
-                NativeInput.ButtonDown(MouseButton.Left);
-                WaitMs(hold, ct);
-                NativeInput.ButtonUp(MouseButton.Left);
+                TapLeft(hold, ct);
                 if (i < b.BurstCount - 1) WaitMs(Math.Max(1, _humanizer.Delay(RestAfterHoldMs(interval, hold), h)), ct);
             }
         }
@@ -328,9 +357,7 @@ public sealed class MacroEngine : IDisposable
             while (Held(b.Trigger) && !ct.IsCancellationRequested)
             {
                 int hold = Math.Max(1, _humanizer.Hold(8, h));
-                NativeInput.ButtonDown(MouseButton.Left);
-                WaitMs(hold, ct);
-                NativeInput.ButtonUp(MouseButton.Left);
+                TapLeft(hold, ct);
                 if (ct.IsCancellationRequested || !Held(b.Trigger)) break;
                 if (!_humanizer.SkipStep(h))
                 {
@@ -360,7 +387,11 @@ public sealed class MacroEngine : IDisposable
     {
         try
         {
-            while (_calibrating && NativeInput.IsDown(MouseButton.Left))
+            // 30 s safety cap: a stuck/phantom Left state must not push the
+            // crosshair down forever.
+            var deadline = Environment.TickCount64 + 30_000;
+            while (_calibrating && NativeInput.IsDown(MouseButton.Left)
+                && Environment.TickCount64 < deadline)
             {
                 NativeInput.MoveRelative(0, 10);
                 Thread.Sleep(50);
@@ -397,6 +428,7 @@ public sealed class MacroEngine : IDisposable
     {
         _hook.Button -= OnMouseButton;
         CancelAll();
+        ReleaseAllKeys();
         _hook.Dispose();
     }
 }

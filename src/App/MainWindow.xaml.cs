@@ -49,6 +49,13 @@ public partial class MainWindow : Window
         SyncCrosshair();
         StateChanged += OnStateChanged;
         Closing += OnClosing;
+        // Losing focus (Alt+Tab mid-hold) strands pressed keys/buttons with no
+        // matching release — drop everything so nothing sticks down.
+        Deactivated += (_, _) =>
+        {
+            try { App.Engine?.CancelAll(); } catch { }
+            try { App.Engine?.ReleaseAllKeys(); } catch { }
+        };
         UpdateCalibBadge();
 
         // Status-bar version tracks the shipped assembly version (csproj <Version>),

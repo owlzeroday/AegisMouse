@@ -21,6 +21,11 @@ public sealed class MacroPlayer
     {
         if (actions is null || actions.Count == 0) return;
         NativeInput.BeginHighResTimer();
+        // Everything pressed but not released (HoldDown/KeyDown, or a cancel
+        // landing between down and up) is released here — stuck input is worse
+        // than an extra clean-up release (a redundant Up is a harmless no-op).
+        var heldButtons = new HashSet<MouseButton>();
+        var heldKeys = new HashSet<int>();
         try
         {
             var sw = Stopwatch.StartNew();
@@ -34,7 +39,7 @@ public sealed class MacroPlayer
                 for (int i = 0; i < reps; i++)
                 {
                     ct.ThrowIfCancellationRequested();
-                    ExecuteBody(action, humanize, ct);
+                    ExecuteBody(action, humanize, ct, heldButtons, heldKeys);
                     if (i < reps - 1)
                     {
                         timeline += _humanizer.Delay(Math.Max(0, action.RepeatIntervalMs), humanize);
@@ -45,24 +50,31 @@ public sealed class MacroPlayer
         }
         finally
         {
+            foreach (var b in heldButtons)
+                try { NativeInput.ButtonUp(b); } catch { }
+            foreach (var vk in heldKeys)
+                try { NativeInput.KeyUp(vk); } catch { }
             NativeInput.EndHighResTimer();
         }
     }
 
-    void ExecuteBody(MacroAction a, HumanizeSettings h, CancellationToken ct)
+    void ExecuteBody(MacroAction a, HumanizeSettings h, CancellationToken ct,
+        HashSet<MouseButton> heldButtons, HashSet<int> heldKeys)
     {
         switch (a.Kind)
         {
             case ActionKind.Click:
                 NativeInput.ButtonDown(a.Button);
-                WaitMs(_humanizer.Hold(a.HoldMs, h), ct);
-                NativeInput.ButtonUp(a.Button);
+                try { WaitMs(_humanizer.Hold(a.HoldMs, h), ct); }
+                finally { NativeInput.ButtonUp(a.Button); }
                 break;
             case ActionKind.HoldDown:
                 NativeInput.ButtonDown(a.Button);
+                heldButtons.Add(a.Button);
                 break;
             case ActionKind.ReleaseUp:
                 NativeInput.ButtonUp(a.Button);
+                heldButtons.Remove(a.Button);
                 break;
             case ActionKind.MoveRelative:
                 var (dx, dy) = _humanizer.Move(a.Dx, a.Dy, h);
@@ -71,14 +83,16 @@ public sealed class MacroPlayer
             // ActionKind.Delay is handled purely by the timeline advance (no extra wait)
             case ActionKind.KeyTap:
                 NativeInput.KeyDown(a.Vk);
-                WaitMs(Math.Max(1, a.HoldMs), ct);
-                NativeInput.KeyUp(a.Vk);
+                try { WaitMs(Math.Max(1, a.HoldMs), ct); }
+                finally { NativeInput.KeyUp(a.Vk); }
                 break;
             case ActionKind.KeyDown:
                 NativeInput.KeyDown(a.Vk);
+                heldKeys.Add(a.Vk);
                 break;
             case ActionKind.KeyUp:
                 NativeInput.KeyUp(a.Vk);
+                heldKeys.Remove(a.Vk);
                 break;
         }
     }

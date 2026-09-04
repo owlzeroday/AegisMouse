@@ -2,9 +2,15 @@
 
 Universal mouse macro engine — works with any brand of mouse. Input is synthesized at the OS level (SendInput + low-level hooks), so no vendor driver is required.
 
-**Current version: 1.5.2**
+**Current version: 1.5.3**
 
 ## Changelog
+
+### 1.5.3 — Steady fire + input safety
+- Frozen capture while armed — the cursor-following frame + pull formed a move/shift/correct feedback loop (the wild rotation while firing). Frame now freezes at the arm point like the debug preview.
+- Stuck input eliminated — fire loops use try/finally clicks, macros release all presses on exit, remap keys tracked + released on focus loss/disable/exit
+- Crash on orphaned mutex after a previous crash — now adopted instead of throwing at startup
+- Calibration capped at 30 s, log files capped at 10 MB with rollover
 
 ### 1.5.2 — Headless-at-startup crash fix
 - Fixed `ShowActivated=false` + `Maximized` overlay killing the main window whenever the crosshair was enabled (app ran headless with no UI). Focus prevention now relies solely on the `WS_EX_NOACTIVATE` style, which has no such restriction.
