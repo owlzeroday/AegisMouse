@@ -2,9 +2,14 @@
 
 Universal mouse macro engine — works with any brand of mouse. Input is synthesized at the OS level (SendInput + low-level hooks), so no vendor driver is required.
 
-**Current version: 1.3.8**
+**Current version: 1.3.9**
 
 ## Changelog
+
+### 1.3.9 — Aim stability trio
+- Velocity prediction — lock history extrapolates 2 frames ahead (capped), so strafing enemies are led instead of trailed
+- IoU hybrid lock matching — box overlap rides through occlusion split/merge and sudden box growth that used to drop the lock
+- Detection allocation pooling — row buffers reused across scanlines, no more GC-pulse pull unevenness
 
 ### 1.3.8 — Rapid-fire timing fix (SMGs felt slow/semi-auto)
 - Fire loops now use the 1 ms high-resolution timer (previously only hold-macros did — every rapid/burst/recoil wait overshot on the ~15.6 ms coarse timer, worst at high SMG RPM)

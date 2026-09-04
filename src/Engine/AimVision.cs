@@ -37,16 +37,19 @@ public static class AimVision
         // but multiple runs can share one label, so FindRoot could cycle 1->2->1 and
         // hang forever on adversarial/real screen content. This map is indexed by
         // label id, so cycles are impossible.
-        var label = new int[width];
-        Array.Clear(label);
-        var labels = new List<(int x0, int x1, int y, int lab)>();
+        // Two row buffers are allocated ONCE and swapped (the old code allocated
+        // a fresh int[width] per scanline at ~60 fps — GC spikes caused uneven
+        // frame times and a visibly pulsing pull). The run list is pre-sized.
+        var prev = new int[width];
+        var cur = new int[width];
+        var labels = new List<(int x0, int x1, int y, int lab)>(Math.Max(64, width * height / 64));
         var parent = new Dictionary<int, int>();
         int nextLabel = 0;
 
         for (int y = 0; y < height; y++)
         {
             var row = bgra.Slice(y * width * 4, width * 4);
-            var cur = new int[width];
+            Array.Clear(cur);
 
             int x = 0;
             while (x < width)
@@ -61,7 +64,7 @@ public static class AimVision
                 int lab = 0;
                 for (int i = Math.Max(0, x0 - 1); i <= Math.Min(width - 1, x1 + 1); i++)
                 {
-                    int p = label[i];
+                    int p = prev[i];
                     if (p != 0)
                     {
                         if (lab == 0) lab = p;
@@ -73,7 +76,7 @@ public static class AimVision
                 labels.Add((x0, x1, y, lab));
             }
 
-            label = cur;
+            var tmp = prev; prev = cur; cur = tmp;
         }
 
         // Collect bboxes per root label, skipping tiny noise blobs.

@@ -136,8 +136,12 @@ public sealed class AimAssistService : IDisposable
 
             if (sel is not null)
             {
-                int aimY = sel.AimY(Math.Clamp(s.AimOffsetPct, 0, 100));
-                int dx = sel.CenterX - curX, dy = aimY - curY;
+                // Lead strafing targets: shift the aim point by the lock's
+                // predicted motion (2 frames, capped) instead of chasing stale pixels.
+                var (predX, predY) = _lock.Predict(2, 48);
+                int aimY = sel.AimY(Math.Clamp(s.AimOffsetPct, 0, 100))
+                    + (int)Math.Round(predY - sel.CenterY);
+                int dx = (int)Math.Round(predX) - curX, dy = aimY - curY;
                 double d = Math.Sqrt(dx * dx + dy * dy);
                 if (d > s.DeadzonePx)
                 {
