@@ -2,9 +2,12 @@
 
 Universal mouse macro engine — works with any brand of mouse. Input is synthesized at the OS level (SendInput + low-level hooks), so no vendor driver is required.
 
-**Current version: 1.4.0**
+**Current version: 1.4.1**
 
 ## Changelog
+
+### 1.4.1 — Aim tab scroll fix
+- The Aim tab had no scrollbar: new 1.4.0 rows overflowed the window and the triggerbot card collapsed to zero height (invisible). Tab now scrolls, all rows Auto.
 
 ### 1.4.0 — Second color range + triggerbot
 - Second target color band (alternate outfits) — OR-ed into detection with the same shape/density gates, full sliders in the Aim tab, compact tuning in the debug window. Off by default.
