@@ -580,6 +580,18 @@
                                     <ComboBox Grid.Column="1" ItemsSource="{Binding AimKeys}" SelectedValuePath="Vk" DisplayMemberPath="Name"
                                               SelectedValue="{Binding AimTriggerVk}" />
                                 </Grid>
+                                <CheckBox IsChecked="{Binding AimFireGate}" Content="Only assist while firing (hold Left mouse button)" Margin="0,6,0,6" ToolTip="Pull and triggerbot run only while Left is held — release to stop instantly" />
+                                <Grid Margin="0,6,0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="190" />
+                                        <ColumnDefinition Width="220" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Aim bone" VerticalAlignment="Center" />
+                                    <ComboBox Grid.Column="1" ItemsSource="{x:Static vm:MainViewModel.AimBoneNames}"
+                                              SelectedIndex="{Binding AimBoneIndex}" />
+                                    <TextBlock Grid.Column="2" Text="Auto pulls to head/torso nearest the crosshair" VerticalAlignment="Center" Margin="10,0,0,0" />
+                                </Grid>
                                 <Grid Margin="0,6,0,6">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="190" />
@@ -628,7 +640,27 @@
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Text="Aim point (% down)" VerticalAlignment="Center" />
                                     <Slider Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding AimOffsetPct}" />
-                                    <TextBlock Grid.Column="2" Text="{Binding AimOffsetPct, StringFormat={}{0:0}%}" VerticalAlignment="Center" Margin="10,0,0,0" />
+                                    <TextBlock Grid.Column="2" Text="{Binding AimOffsetPct, StringFormat={}{0:0}% head}" VerticalAlignment="Center" Margin="10,0,0,0" />
+                                </Grid>
+                                <Grid Margin="0,6,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="190" />
+                                        <ColumnDefinition Width="220" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Torso point (% down)" VerticalAlignment="Center" />
+                                    <Slider Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding AimTorsoPct}" />
+                                    <TextBlock Grid.Column="2" Text="{Binding AimTorsoPct, StringFormat={}{0:0}% torso}" VerticalAlignment="Center" Margin="10,0,0,0" />
+                                </Grid>
+                                <Grid Margin="0,6,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="190" />
+                                        <ColumnDefinition Width="220" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="On-target gate (px)" VerticalAlignment="Center" ToolTip="When above 0, pull only engages while the crosshair sits inside the locked box expanded by this margin. 0 = FOV only." />
+                                    <Slider Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding AimSnapMargin}" />
+                                    <TextBlock Grid.Column="2" Text="{Binding AimSnapMargin, StringFormat='{}{0:0} px (0=off)'}" VerticalAlignment="Center" Margin="10,0,0,0" />
                                 </Grid>
                                 <Grid Margin="0,6,0,0">
                                     <Grid.ColumnDefinitions>

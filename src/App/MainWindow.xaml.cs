@@ -19,7 +19,7 @@ public partial class MainWindow : Window
     readonly AimAssistService _aim = new();
     AimDebugWindow? _debugWin;
     CrosshairWindow? _crossWin;
-    bool _aimArmedMouse, _aimArmedKey;
+    bool _aimArmedMouse, _aimArmedKey, _aimFiring;
     System.Windows.Forms.NotifyIcon? _tray;
     bool _trayMinimized;
     bool _exiting;
@@ -27,6 +27,8 @@ public partial class MainWindow : Window
     static readonly string[] AimProps =
     [
         nameof(MainViewModel.AimEnabled), nameof(MainViewModel.AimTrigger), nameof(MainViewModel.AimTriggerVk),
+        nameof(MainViewModel.AimFireGate), nameof(MainViewModel.AimBone), nameof(MainViewModel.AimBoneIndex),
+        nameof(MainViewModel.AimTorsoPct), nameof(MainViewModel.AimSnapMargin),
         nameof(MainViewModel.AimFovRadius), nameof(MainViewModel.AimPull), nameof(MainViewModel.AimMaxTurn),
         nameof(MainViewModel.AimOffsetPct), nameof(MainViewModel.AimMinSize), nameof(MainViewModel.AimHueMin),
         nameof(MainViewModel.AimHueMax), nameof(MainViewModel.AimSatMin), nameof(MainViewModel.AimValMin),
@@ -86,6 +88,9 @@ public partial class MainWindow : Window
     {
         _aim.SetSettings(_vm.BuildAimSettings());
         _aim.SetHumanize(_vm.BuildHumanizeSettings());
+        // Fire-gate / trigger-source toggles must take effect immediately, not
+        // on the next button event (e.g. unchecking the gate while ADS-held).
+        RefreshAimArmed();
     }
 
     void SyncCrosshair()
@@ -122,17 +127,31 @@ public partial class MainWindow : Window
         if (_vm.AimTriggerVk != 0 && vk == _vm.AimTriggerVk)
         {
             _aimArmedKey = down;
-            _aim.SetArmed(_aimArmedKey || _aimArmedMouse);
+            RefreshAimArmed();
         }
     }
 
     void OnAimButtonEvent(MouseButton button, bool down)
     {
+        // Fire gate: Left hold = firing. Tracked independently of the aim trigger
+        // so pull + triggerbot only run while actually shooting.
+        if (button == MouseButton.Left) _aimFiring = down;
         if (_vm.AimTrigger is { } t && button == t)
-        {
             _aimArmedMouse = down;
-            _aim.SetArmed(_aimArmedKey || _aimArmedMouse);
-        }
+        RefreshAimArmed();
+    }
+
+    /// <summary>
+    /// Combined arming: (aim trigger held OR no aim trigger set) AND
+    /// (fire gate off OR Left held). Fire-only mode = clear the aim trigger
+    /// dropdown to "None" and leave the fire gate checked.
+    /// </summary>
+    void RefreshAimArmed()
+    {
+        bool triggerHeld = _aimArmedKey || _aimArmedMouse
+            || (_vm.AimTrigger is null && _vm.AimTriggerVk == 0);
+        bool fireOk = !_vm.AimFireGate || _aimFiring;
+        _aim.SetArmed(triggerHeld && fireOk);
     }
 
     void OpenAimDebug_Click(object sender, RoutedEventArgs e)

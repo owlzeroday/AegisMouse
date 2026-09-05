@@ -151,7 +151,17 @@ public sealed class AimAssistService : IDisposable
             }
             // Overlay shows the tracked box even during debounce so tuning stays visible.
             var shown = _armed ? _lock.Current : null;
-            double dist = sel is null ? 0 : Math.Sqrt(Math.Pow(sel.CenterX - curX, 2) + Math.Pow(sel.CenterY - curY, 2));
+            // Bone-aware distance: measure from the resolved head/torso aim point,
+            // not the box center — the triggerbot and deadzone must agree with
+            // where the pull is actually going.
+            int headPct = Math.Clamp(s.AimOffsetPct, 0, 100);
+            int torsoPct = Math.Clamp(s.TorsoOffsetPct, 0, 100);
+            double dist = 0;
+            if (sel is not null)
+            {
+                var (ax, ay) = sel.BoneAimPoint(s.Bone, headPct, torsoPct, curX, curY);
+                dist = Math.Sqrt(Math.Pow(ax - curX, 2) + Math.Pow(ay - curY, 2));
+            }
 
             // Triggerbot: one shot per acquisition while the aim point sits on
             // the crosshair. Separate toggle — off unless explicitly enabled.
@@ -164,12 +174,21 @@ public sealed class AimAssistService : IDisposable
 
             if (sel is not null)
             {
+                // Strict on-target gate (opt-in): crosshair must sit inside the
+                // locked box expanded by SnapMarginPx. 0 = FOV gate only (legacy).
+                if (s.SnapMarginPx > 0 && !sel.ContainsPoint(curX, curY, s.SnapMarginPx))
+                {
+                    _smX = _smY = 0;
+                }
+                else
+                {
                 // Lead strafing targets: shift the aim point by the lock's
                 // predicted motion (2 frames, capped) instead of chasing stale pixels.
                 var (predX, predY) = _lock.Predict(2, 48);
-                int aimY = sel.AimY(Math.Clamp(s.AimOffsetPct, 0, 100))
-                    + (int)Math.Round(predY - sel.CenterY);
-                int dx = (int)Math.Round(predX) - curX, dy = aimY - curY;
+                var (boneX, boneY) = sel.BoneAimPoint(s.Bone, headPct, torsoPct, curX, curY);
+                int aimY = boneY + (int)Math.Round(predY - sel.CenterY);
+                int aimX = boneX + (int)Math.Round(predX - sel.CenterX);
+                int dx = aimX - curX, dy = aimY - curY;
                 double d = Math.Sqrt(dx * dx + dy * dy);
                 if (d > s.DeadzonePx)
                 {
@@ -185,6 +204,7 @@ public sealed class AimAssistService : IDisposable
                     if (jx != 0 || jy != 0) NativeInput.MoveRelative(jx, jy);
                 }
                 else { _smX = _smY = 0; }
+                }
             }
             else { _smX = _smY = 0; }
 

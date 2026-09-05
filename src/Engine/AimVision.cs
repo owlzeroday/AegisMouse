@@ -12,8 +12,34 @@ public sealed class AimTarget
     public int CenterX => Left + Width / 2;
     public int CenterY => Top + Height / 2;
     public int Area => Width * Height;
-    /// <summary>Crosshair aim point (head offset applied by the caller).</summary>
     public int AimY(int offsetPct) => Top + Height * offsetPct / 100;
+
+    /// <summary>Head aim-point Y (uses the head offset %).</summary>
+    public int HeadY(int headPct) => Top + Height * Math.Clamp(headPct, 0, 100) / 100;
+    /// <summary>Torso aim-point Y (uses the torso offset %, ~50 = chest).</summary>
+    public int TorsoY(int torsoPct) => Top + Height * Math.Clamp(torsoPct, 0, 100) / 100;
+
+    /// <summary>
+    /// Bone-resolved aim point. Head/Torso use their fixed offsets; Auto picks
+    /// whichever point (head vs torso, same X = box center) lies nearer the
+    /// crosshair — smallest snap wins, most stable under fire.
+    /// </summary>
+    public (int X, int Y) BoneAimPoint(AimBone bone, int headPct, int torsoPct, int cx, int cy)
+    {
+        int x = CenterX;
+        int hy = HeadY(headPct), ty = TorsoY(torsoPct);
+        return bone switch
+        {
+            AimBone.Head => (x, hy),
+            AimBone.Torso => (x, ty),
+            _ => (Math.Abs(hy - cy) <= Math.Abs(ty - cy)) ? (x, hy) : (x, ty),
+        };
+    }
+
+    /// <summary>True when the crosshair sits inside the box expanded by margin px.</summary>
+    public bool ContainsPoint(int cx, int cy, int marginPx)
+        => cx >= Left - marginPx && cx <= Left + Width + marginPx
+        && cy >= Top - marginPx && cy <= Top + Height + marginPx;
 }
 
 /// <summary>

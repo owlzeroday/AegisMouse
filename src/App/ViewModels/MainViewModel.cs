@@ -275,6 +275,11 @@ public sealed partial class MainViewModel : ObservableObject
                 case nameof(AimEnabled):
                 case nameof(AimTrigger):
                 case nameof(AimTriggerVk):
+                case nameof(AimFireGate):
+                case nameof(AimBone):
+                case nameof(AimBoneIndex):
+                case nameof(AimTorsoPct):
+                case nameof(AimSnapMargin):
                 case nameof(AimFovRadius):
                 case nameof(AimPull):
                 case nameof(AimMaxTurn):
@@ -384,6 +389,10 @@ public sealed partial class MainViewModel : ObservableObject
             AimEnabled = a.Enabled;
             AimTrigger = a.Trigger;
             AimTriggerVk = a.TriggerVk;
+            AimFireGate = a.FireGateEnabled;
+            AimBone = Enum.IsDefined(typeof(AimBone), a.Bone) ? a.Bone : AimBone.Auto;
+            AimTorsoPct = a.TorsoOffsetPct;
+            AimSnapMargin = a.SnapMarginPx;
             AimFovRadius = a.FovRadiusPx;
             AimPull = a.PullStrength;
             AimMaxTurn = a.MaxTurnPxPerFrame;
@@ -529,6 +538,16 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] bool aimEnabled;
     [ObservableProperty] MouseButton? aimTrigger;
     [ObservableProperty] int aimTriggerVk;
+    [ObservableProperty] bool aimFireGate = true;
+    [ObservableProperty] AimBone aimBone = AimBone.Auto;
+    [ObservableProperty] int aimTorsoPct = 50;
+    [ObservableProperty] int aimSnapMargin;
+    public static IReadOnlyList<string> AimBoneNames { get; } = ["Head", "Torso", "Auto (nearest)"];
+    public int AimBoneIndex
+    {
+        get => (int)AimBone;
+        set => AimBone = Enum.IsDefined(typeof(AimBone), value) ? (AimBone)value : AimBone.Auto;
+    }
     [ObservableProperty] double aimFovRadius = 150;
     [ObservableProperty] double aimPull = 0.75;
     [ObservableProperty] double aimMaxTurn = 10;
@@ -705,6 +724,7 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     partial void OnAimTriggerChanged(MouseButton? value) => OnPropertyChanged(nameof(AimTriggerOption));
+    partial void OnAimBoneChanged(AimBone value) => OnPropertyChanged(nameof(AimBoneIndex));
 
     /// <summary>Builds the current aim-assist settings (clamped).</summary>
     public AimAssistSettings BuildAimSettings() => new()
@@ -712,6 +732,10 @@ public sealed partial class MainViewModel : ObservableObject
         Enabled = AimEnabled,
         Trigger = AimTrigger,
         TriggerVk = Math.Clamp(AimTriggerVk, 0, 255),
+        FireGateEnabled = AimFireGate,
+        Bone = Enum.IsDefined(typeof(AimBone), AimBone) ? AimBone : AimBone.Auto,
+        TorsoOffsetPct = Math.Clamp(AimTorsoPct, 0, 100),
+        SnapMarginPx = Math.Clamp(AimSnapMargin, 0, 200),
         FovRadiusPx = (int)Math.Clamp(AimFovRadius, 8, 900),
         PullStrength = Math.Clamp(AimPull, 0.05, 0.99),
         MaxTurnPxPerFrame = (int)Math.Clamp(AimMaxTurn, 1, 60),

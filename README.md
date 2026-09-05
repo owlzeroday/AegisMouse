@@ -2,9 +2,16 @@
 
 Universal mouse macro engine — works with any brand of mouse. Input is synthesized at the OS level (SendInput + low-level hooks), so no vendor driver is required.
 
-**Current version: 1.6.0**
+**Current version: 1.7.0**
 
 ## Changelog
+
+### 1.7.0 — Fire-gated aim + head/torso lock
+- Aim assist now pulls only while firing — new fire gate (on by default) requires Left held; release stops pull + triggerbot instantly. Set Hold-to-aim to "None" for pure fire-only mode, or keep ADS + fire for both-pressed arming.
+- New aim-bone picker: Head / Torso / Auto (nearest point to the crosshair wins — smallest snap, most stable under fire). Torso point tunable (default 50% down), head keeps the existing aim-point slider.
+- Bone-aware everything: pull vector, deadzone, and triggerbot distance are all measured from the resolved head/torso point instead of the box center, so the three agree on where the shot goes.
+- Optional on-target gate: set above 0 px to engage pull only while the crosshair sits inside the locked box (0 = legacy FOV-only behavior, existing profiles unchanged).
+- Fix: toggling the fire gate or aim trigger now re-arms immediately instead of waiting for the next button event.
 
 ### 1.6.0 — Dedicated Rapid Fire tab
 - Rapid fire moves out of the grid into its own tab: enable, trigger picker, Hold/Toggle playback modes, RPM slider (60–2000), click-hold tuning. The tab edits the profile's rapid binding directly — single source of truth, grid stays in sync both ways.

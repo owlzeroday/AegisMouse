@@ -140,6 +140,14 @@ public sealed class AppSettings
     public string LastProfileId { get; set; } = "";
 }
 
+/// <summary>Which body point the assist pulls toward.</summary>
+public enum AimBone
+{
+    Head = 0,
+    Torso = 1,
+    Auto = 2
+}
+
 /// <summary>
 /// Soft aim assist: magnetic pull toward color-detected targets while the trigger is held.
 /// Pulls only a fraction of the remaining distance per frame (never a hard lock), capped
@@ -162,6 +170,15 @@ public sealed class AimAssistSettings
     public int DeadzonePx { get; set; } = 4;
     /// <summary>Aim point: % down from the top of the detected box (18 ≈ head).</summary>
     public int AimOffsetPct { get; set; } = 18;
+    /// <summary>Which body point to pull toward. Auto picks head/torso nearest the crosshair.</summary>
+    public AimBone Bone { get; set; } = AimBone.Auto;
+    /// <summary>Torso aim point: % down from the top of the detected box (~50 = chest).</summary>
+    public int TorsoOffsetPct { get; set; } = 50;
+    /// <summary>Fire gate: pull/triggerbot only while Left (fire) is held. 0-margin legacy = FOV only.</summary>
+    public bool FireGateEnabled { get; set; } = true;
+    /// <summary>Strict on-target gate: when &gt;0, the crosshair must be inside the locked box
+    /// expanded by this margin (px) for pull to engage. 0 = FOV gate only (legacy).</summary>
+    public int SnapMarginPx { get; set; } = 0;
     /// <summary>Detected blobs smaller than this (px) are noise and ignored.</summary>
     public int MinTargetSizePx { get; set; } = 10;
     /// <summary>Blobs taller/wider than this (px) are scenery (hillsides, buildings), not players.</summary>
@@ -314,6 +331,9 @@ public static class ProfileSanitizer
         s.ValMin2 = Math.Clamp(s.ValMin2, 0, 255);
         s.TriggerbotDelayMs = Math.Clamp(s.TriggerbotDelayMs, 0, 1000);
         s.TriggerbotTolerancePx = Math.Clamp(s.TriggerbotTolerancePx, 2, 50);
+        if (!Enum.IsDefined(s.Bone)) s.Bone = AimBone.Auto;
+        s.TorsoOffsetPct = Math.Clamp(s.TorsoOffsetPct, 0, 100);
+        s.SnapMarginPx = Math.Clamp(s.SnapMarginPx, 0, 200);
     }
 
     public static void Sanitize(CrosshairSettings c)
