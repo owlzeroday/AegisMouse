@@ -155,7 +155,9 @@ Universal mouse macro engine — works with any brand of mouse. Input is synthes
 ```powershell
 dotnet build AegisMouse.sln -c Release
 dotnet test tests/Tests/AegisMouse.Tests.csproj -c Release
-dotnet publish src/App/AegisMouse.App.csproj -c Release -r win-x64 --self-contained true
+dotnet publish src/App/AegisMouse.App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish
+# NOTE: single-file flags are required — without them publish emits 250+ loose
+# DLLs and the Inno installer (which packages only AegisMouse.App.exe) ships broken.
 ```
 
 The app requires administrator privileges to inject input into elevated (e.g., anti-cheat-protected) games.
