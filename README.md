@@ -2,9 +2,17 @@
 
 Universal mouse macro engine — works with any brand of mouse. Input is synthesized at the OS level (SendInput + low-level hooks), so no vendor driver is required.
 
-**Current version: 1.7.0**
+**Current version: 1.8.0**
 
 ## Changelog
+
+### 1.8.0 — Mid-range + moving-target lock
+- Root-caused close-only locking: strict acquisition gates filtered small mid-range blobs, any single missed frame reset the 3-frame debounce to zero, and the capture region frozen at the fire-press point let strafing targets walk out of frame mid-spray.
+- Lock coasts through missed detections (new Coast slider, default 3 frames) — mid-range shimmer no longer resets acquisition forever.
+- Continuation matched around the predicted center (1.5x gate) so fast strafers don't outrun the lock between frames; fresh blob right on the crosshair reseeds immediately (retarget, no stale coast).
+- Capture region follows the predicted lock while firing, bounded to the capture size around the press point (new Follow checkbox, default on) — cursor never steers it, so no feedback-loop return.
+- Min target size default 10 → 6 px for small/distant blobs; new SMG/CQB and Rifle/Mid-range weapon presets (FOV, pull, turn, size, capture, coast).
+- 6 new tests (74 passing).
 
 ### 1.7.0 — Fire-gated aim + head/torso lock
 - Aim assist now pulls only while firing — new fire gate (on by default) requires Left held; release stops pull + triggerbot instantly. Set Hold-to-aim to "None" for pure fire-only mode, or keep ADS + fire for both-pressed arming.

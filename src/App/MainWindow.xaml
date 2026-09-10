@@ -581,6 +581,22 @@
                                               SelectedValue="{Binding AimTriggerVk}" />
                                 </Grid>
                                 <CheckBox IsChecked="{Binding AimFireGate}" Content="Only assist while firing (hold Left mouse button)" Margin="0,6,0,6" ToolTip="Pull and triggerbot run only while Left is held — release to stop instantly" />
+                                <CheckBox IsChecked="{Binding AimFollow}" Content="Follow locked target with capture while firing (keeps movers in frame)" Margin="0,6,0,6" ToolTip="Capture region tracks the predicted lock position, bounded to the capture size around the fire-press point" />
+                                <Grid Margin="0,6,0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="190" />
+                                        <ColumnDefinition Width="220" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Coast missed frames" VerticalAlignment="Center" ToolTip="Pullable lock survives this many missed-detection frames before dropping — mid-range shimmer blinks out briefly" />
+                                    <Slider Grid.Column="1" Minimum="0" Maximum="10" Value="{Binding AimCoast}" />
+                                    <TextBlock Grid.Column="2" Text="{Binding AimCoast, StringFormat='{}{0:0} frames'}" VerticalAlignment="Center" Margin="10,0,0,0" />
+                                </Grid>
+                                <StackPanel Orientation="Horizontal" Margin="0,6,0,6">
+                                    <TextBlock Text="Weapon preset" VerticalAlignment="Center" Width="190" />
+                                    <Button Content="SMG / CQB" Command="{Binding ApplyAimPresetCommand}" CommandParameter="SMG" Margin="0,0,8,0" />
+                                    <Button Content="Rifle / Mid-range" Command="{Binding ApplyAimPresetCommand}" CommandParameter="Rifle" />
+                                </StackPanel>
                                 <Grid Margin="0,6,0,6">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="190" />

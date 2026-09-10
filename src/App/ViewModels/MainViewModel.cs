@@ -280,6 +280,8 @@ public sealed partial class MainViewModel : ObservableObject
                 case nameof(AimBoneIndex):
                 case nameof(AimTorsoPct):
                 case nameof(AimSnapMargin):
+                case nameof(AimCoast):
+                case nameof(AimFollow):
                 case nameof(AimFovRadius):
                 case nameof(AimPull):
                 case nameof(AimMaxTurn):
@@ -393,6 +395,8 @@ public sealed partial class MainViewModel : ObservableObject
             AimBone = Enum.IsDefined(typeof(AimBone), a.Bone) ? a.Bone : AimBone.Auto;
             AimTorsoPct = a.TorsoOffsetPct;
             AimSnapMargin = a.SnapMarginPx;
+            AimCoast = a.CoastFrames;
+            AimFollow = a.FollowLock;
             AimFovRadius = a.FovRadiusPx;
             AimPull = a.PullStrength;
             AimMaxTurn = a.MaxTurnPxPerFrame;
@@ -542,6 +546,8 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] AimBone aimBone = AimBone.Auto;
     [ObservableProperty] int aimTorsoPct = 50;
     [ObservableProperty] int aimSnapMargin;
+    [ObservableProperty] int aimCoast = 3;
+    [ObservableProperty] bool aimFollow = true;
     public static IReadOnlyList<string> AimBoneNames { get; } = ["Head", "Torso", "Auto (nearest)"];
     public int AimBoneIndex
     {
@@ -553,7 +559,7 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] double aimMaxTurn = 10;
     [ObservableProperty] int aimDeadzone = 4;
     [ObservableProperty] int aimOffsetPct = 18;
-    [ObservableProperty] int aimMinSize = 10;
+    [ObservableProperty] int aimMinSize = 6;
     [ObservableProperty] int aimHueMin;
     [ObservableProperty] int aimHueMax = 179;
     [ObservableProperty] int aimSatMin = 80;
@@ -736,6 +742,8 @@ public sealed partial class MainViewModel : ObservableObject
         Bone = Enum.IsDefined(typeof(AimBone), AimBone) ? AimBone : AimBone.Auto,
         TorsoOffsetPct = Math.Clamp(AimTorsoPct, 0, 100),
         SnapMarginPx = Math.Clamp(AimSnapMargin, 0, 200),
+        CoastFrames = Math.Clamp(AimCoast, 0, 10),
+        FollowLock = AimFollow,
         FovRadiusPx = (int)Math.Clamp(AimFovRadius, 8, 900),
         PullStrength = Math.Clamp(AimPull, 0.05, 0.99),
         MaxTurnPxPerFrame = (int)Math.Clamp(AimMaxTurn, 1, 60),
@@ -915,6 +923,32 @@ public sealed partial class MainViewModel : ObservableObject
         }
         StatusText = $"Applied '{presetName}' recoil table ({table.Count} steps).";
         ScheduleSave();
+    }
+
+    [RelayCommand]
+    void ApplyAimPreset(string? presetName)
+    {
+        // Weapon-tuned assist presets: SMGs need pull authority up close (fast TTK,
+        // wide strafe), rifles need reach (bigger FOV/capture, smaller min-size so
+        // mid-range blobs acquire). Each set schedules a save via the property setters.
+        switch (presetName)
+        {
+            case "SMG":
+                AimFovRadius = 170; AimPull = 0.80; AimMaxTurn = 16; AimDeadzone = 3;
+                AimOffsetPct = 18; AimTorsoPct = 50; AimBone = AimBone.Auto;
+                AimMinSize = 8; AimCaptureRadius = 240; AimSnapMargin = 0;
+                AimCoast = 3; AimFollow = true;
+                StatusText = "Applied 'SMG / CQB' aim preset — strong pull, close frame.";
+                break;
+            case "Rifle":
+                AimFovRadius = 230; AimPull = 0.70; AimMaxTurn = 12; AimDeadzone = 4;
+                AimOffsetPct = 15; AimTorsoPct = 50; AimBone = AimBone.Auto;
+                AimMinSize = 5; AimCaptureRadius = 320; AimSnapMargin = 0;
+                AimCoast = 4; AimFollow = true;
+                StatusText = "Applied 'Rifle / Mid-range' aim preset — wide frame, small-target acquisition.";
+                break;
+            default: return;
+        }
     }
 
     [RelayCommand]

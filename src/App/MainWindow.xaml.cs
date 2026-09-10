@@ -29,6 +29,7 @@ public partial class MainWindow : Window
         nameof(MainViewModel.AimEnabled), nameof(MainViewModel.AimTrigger), nameof(MainViewModel.AimTriggerVk),
         nameof(MainViewModel.AimFireGate), nameof(MainViewModel.AimBone), nameof(MainViewModel.AimBoneIndex),
         nameof(MainViewModel.AimTorsoPct), nameof(MainViewModel.AimSnapMargin),
+        nameof(MainViewModel.AimCoast), nameof(MainViewModel.AimFollow),
         nameof(MainViewModel.AimFovRadius), nameof(MainViewModel.AimPull), nameof(MainViewModel.AimMaxTurn),
         nameof(MainViewModel.AimOffsetPct), nameof(MainViewModel.AimMinSize), nameof(MainViewModel.AimHueMin),
         nameof(MainViewModel.AimHueMax), nameof(MainViewModel.AimSatMin), nameof(MainViewModel.AimValMin),
