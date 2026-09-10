@@ -24,13 +24,6 @@ public sealed class TargetLock
 {
     /// <summary>Lock must move less than this (px, capture-space) per frame to count as "same blob".</summary>
     const double ContinueDistPx = 48;
-    /// <summary>Continuation gate is measured around the PREDICTED center (not the
-    /// last center) and widened 1.5x — fast strafers jump past the raw gate
-    /// between frames at low capture rates.</summary>
-    const double ContinueDistFactor = 1.5;
-    /// <summary>A fresh blob this close to the crosshair means the user retargeted —
-    /// reseed immediately instead of coasting the stale lock.</summary>
-    const double ReseedRadiusPx = 20;
     /// <summary>Overlapping this much (IoU) also counts as "same blob" even if the center jumped.</summary>
     const double ContinueIou = 0.15;
     /// <summary>Challenger must beat the lock by this margin (px) to steal it.</summary>
@@ -40,7 +33,6 @@ public sealed class TargetLock
 
     AimTarget? _tracked;
     int _seen;
-    int _missed;
     readonly Queue<(double X, double Y)> _history = new();
 
     /// <summary>Currently tracked blob (pre-debounce — useful for the debug overlay).</summary>
@@ -50,98 +42,52 @@ public sealed class TargetLock
     {
         _tracked = null;
         _seen = 0;
-        _missed = 0;
         _history.Clear();
     }
 
     /// <summary>
     /// Feed one frame of detections. Returns the locked target once it has
     /// persisted long enough to pull on, else null.
-    ///
-    /// Two mover fixes vs the old version: (1) continuation is matched around
-    /// the PREDICTED center so fast strafers don't outrun the gate; (2) a
-    /// pullable lock coasts through up to CoastFrames missed frames (mid-range
-    /// shimmer drops detections for a frame or two — the old code reset the
-    /// whole debounce to zero every time, so flickering targets never engaged).
     /// </summary>
     public AimTarget? Update(IReadOnlyList<AimTarget> targets, int cx, int cy, AimAssistSettings s)
     {
-        int coast = Math.Clamp(s.CoastFrames, 0, 10);
+        if (targets.Count == 0)
+        {
+            Reset();
+            return null;
+        }
 
         if (_tracked is not null)
         {
             // Area gate first: a 3 px speckle next to the lock must never win
             // "nearest" over the real (moved) box — mid-range flicker made the
             // lock hop to noise and the view whipped with it.
-            var (fx, fy) = Predict(1, ContinueDistPx);
-            var cont = NearestPassing(targets, _tracked, (int)Math.Round(fx), (int)Math.Round(fy));
-            if (cont is not null && (CenterDist(cont, _tracked) <= ContinueDistPx * ContinueDistFactor || IoU(cont, _tracked) >= ContinueIou))
+            var cont = NearestPassing(targets, _tracked, _tracked.CenterX, _tracked.CenterY);
+            if (cont is not null && (CenterDist(cont, _tracked) <= ContinueDistPx || IoU(cont, _tracked) >= ContinueIou))
             {
                 Track(cont);
-                _missed = 0;
                 if (ChallengerSteals(targets, cont, cx, cy))
                 {
                     Track(Nearest(targets, cx, cy)!);
                     _seen = 1;
-                    _missed = 0;
                     return _seen >= s.LockFrames ? _tracked : null;
                 }
                 return _seen >= s.LockFrames ? _tracked : null;
             }
-
-            // Continuation lost this frame. Fresh blob right on the crosshair =
-            // the user clearly retargeted: reseed at once, don't coast stale.
-            var near = Nearest(targets, cx, cy);
-            if (near is not null && !ReferenceEquals(near, _tracked)
-                && Math.Sqrt(Math.Pow(near.CenterX - cx, 2) + Math.Pow(near.CenterY - cy, 2)) <= ReseedRadiusPx
-                && !SameBox(near, _tracked))
-            {
-                Track(near);
-                _seen = 1;
-                _missed = 0;
-                return _seen >= s.LockFrames ? _tracked : null;
-            }
-
-            // Otherwise coast the pullable lock through the gap.
-            if (_seen >= s.LockFrames && _missed < coast)
-            {
-                _missed++;
-                PushHistory(_tracked.CenterX, _tracked.CenterY);
-                return _tracked;
-            }
             // Tracked blob vanished — fall through to fresh acquisition.
-        }
-
-        if (targets.Count == 0)
-        {
-            // Empty frame: same coast deal, else the lock fully drops.
-            if (_tracked is not null && _seen >= s.LockFrames && _missed < coast)
-            {
-                _missed++;
-                PushHistory(_tracked.CenterX, _tracked.CenterY);
-                return _tracked;
-            }
-            Reset();
-            return null;
         }
 
         Track(Nearest(targets, cx, cy)!);
         _seen = 1;
-        _missed = 0;
         return _seen >= s.LockFrames ? _tracked : null;
-    }
-
-    void PushHistory(double x, double y)
-    {
-        _history.Enqueue((x, y));
-        while (_history.Count > HistoryLen) _history.Dequeue();
     }
 
     void Track(AimTarget t)
     {
         _tracked = t;
         _seen++;
-        PushHistory(t.CenterX, t.CenterY);
+        _history.Enqueue((t.CenterX, t.CenterY));
+        while (_history.Count > HistoryLen) _history.Dequeue();
     }
 
     /// <summary>
@@ -234,7 +180,4 @@ public sealed class TargetLock
 
     static double CenterDist(AimTarget a, AimTarget b)
         => Math.Sqrt(Math.Pow(a.CenterX - b.CenterX, 2) + Math.Pow(a.CenterY - b.CenterY, 2));
-
-    static bool SameBox(AimTarget a, AimTarget b)
-        => a.Left == b.Left && a.Top == b.Top && a.Width == b.Width && a.Height == b.Height;
 }

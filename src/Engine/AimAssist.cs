@@ -76,7 +76,6 @@ public sealed class AimAssistService : IDisposable
 
     volatile bool _armValid;
     volatile int _armX, _armY;
-    volatile int _pressX, _pressY;
 
     /// <summary>True while the trigger key/button is held (or debug vision is open).</summary>
     public void SetArmed(bool armed)
@@ -88,7 +87,6 @@ public sealed class AimAssistService : IDisposable
             // → overshoot): that oscillation is the "wild rotation while firing".
             var c = Cursor.Position;
             _armX = c.X; _armY = c.Y; _armValid = true;
-            _pressX = c.X; _pressY = c.Y;
         }
         _armed = armed;
         if (!armed) { _lock.Reset(); _trigger.Reset(); _smX = _smY = 0; _armValid = false; }
@@ -209,22 +207,6 @@ public sealed class AimAssistService : IDisposable
                 }
             }
             else { _smX = _smY = 0; }
-
-            // Follow the lock with the capture region so a strafing target can't
-            // walk out of frame mid-spray (the old hard freeze at the press point
-            // is what killed tracking on movers). Uses the tracked box even
-            // during debounce so shimmering mid-range blobs stay in frame long
-            // enough to complete acquisition. Drift is bounded to the capture
-            // size around the press point so a bad lock can't drag the region
-            // away, and the cursor never steers the region — the feedback loop
-            // the freeze was built to kill cannot return through this path.
-            if (s.FollowLock && _armed && _lock.Current is not null)
-            {
-                var (fx, fy) = _lock.Predict(1, 64);
-                int half = size / 2;
-                _armX = Math.Clamp(cap.Left + (int)Math.Round(fx), _pressX - half, _pressX + half);
-                _armY = Math.Clamp(cap.Top + (int)Math.Round(fy), _pressY - half, _pressY + half);
-            }
 
             // Stream to debug window (throttled by the loop rate; copies only when a sink exists)
             if (_debug)

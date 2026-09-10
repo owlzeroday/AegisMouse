@@ -180,19 +180,13 @@ public sealed class AimAssistSettings
     /// expanded by this margin (px) for pull to engage. 0 = FOV gate only (legacy).</summary>
     public int SnapMarginPx { get; set; } = 0;
     /// <summary>Detected blobs smaller than this (px) are noise and ignored.</summary>
-    public int MinTargetSizePx { get; set; } = 6;
+    public int MinTargetSizePx { get; set; } = 10;
     /// <summary>Blobs taller/wider than this (px) are scenery (hillsides, buildings), not players.</summary>
     public int MaxTargetSizePx { get; set; } = 320;
     /// <summary>Matched pixels must fill at least this % of the bounding box (sparse grass speckles fail).</summary>
     public int MinFillPct { get; set; } = 25;
     /// <summary>Same blob must persist this many frames before any pull starts (kills 1-frame flicker).</summary>
     public int LockFrames { get; set; } = 3;
-    /// <summary>Pullable lock coasts through this many missed-detection frames before
-    /// dropping (mid-range shimmer + fast movers blink out for a frame or two).</summary>
-    public int CoastFrames { get; set; } = 3;
-    /// <summary>Capture region follows the locked target while firing (bounded to the
-    /// capture size around the press point) so strafing targets can't walk out of frame.</summary>
-    public bool FollowLock { get; set; } = true;
     /// <summary>EMA history weight on output (0.05..0.95, higher = smoother). Kills rotational jitter.</summary>
     public double SmoothFactor { get; set; } = 0.5;
     /// <summary>HSV target color. Hue 0..179, S/V 0..255 (OpenCV convention).</summary>
@@ -323,7 +317,6 @@ public static class ProfileSanitizer
         if (s.MaxTargetSizePx < s.MinTargetSizePx) s.MaxTargetSizePx = s.MinTargetSizePx;
         s.MinFillPct = Math.Clamp(s.MinFillPct, 5, 90);
         s.LockFrames = Math.Clamp(s.LockFrames, 1, 10);
-        s.CoastFrames = Math.Clamp(s.CoastFrames, 0, 10);
         s.SmoothFactor = double.IsFinite(s.SmoothFactor) ? Math.Clamp(s.SmoothFactor, 0.05, 0.95) : 0.5;
         if (s.HueMin > s.HueMax) (s.HueMin, s.HueMax) = (s.HueMax, s.HueMin);
         s.HueMin = Math.Clamp(s.HueMin, 0, 179);
